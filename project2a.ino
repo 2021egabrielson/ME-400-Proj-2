@@ -123,6 +123,24 @@ void setup()
 }
 void loop()
 {
-
+    last_key_processed = oIR.GetKeyPressed();
+    if (last_key_processed == KEY_1)
+    {
+        last_key_processed = KEY_NONE;
+        option1;
+    }
+    if
+        else(last_key_processed == KEY_2)
+        {
+            last_key_processed = KEY_NONE;
+            option2_screen;
+            option2;
+        }
+    if
+        else(last_key_processed == KEY_3)
+        {
+            last_key_processed = KEY_NONE;
+            option3;
+        }
 }
     
