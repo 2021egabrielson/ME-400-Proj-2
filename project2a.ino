@@ -90,11 +90,6 @@ ShowMainMenu(SC_MAIN, ' ', ' ');
 }
 void loop()
 {
-
-
-}
-
-void loop{
 // Program used for Option 1 on Main Menu
     // rotates the servo motor from 15 to 165 degrees
         // for(int i=15;i<=165;i++){
@@ -117,5 +112,7 @@ void loop{
             //Serial.print(distance);
             //Serial.print(".");
         }
+
 }
+
     
