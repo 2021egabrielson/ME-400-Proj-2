@@ -6,6 +6,25 @@ void InitializePWM(){
     TCCR5A = 0b00000001;
     TCCR5B = 0b00000011;
 }
+
+// Variables used for the duration and distance
+long duration;
+int distance;
+
+// Function for calculating the distance measured by the Ultrasonic sensor
+int calculateDistance(int tPin, int ePin){
+digitalWrite(tPin, LOW);
+delayMicroseconds(2);
+// Sets the trigPin on HIGH state for 10 micro seconds
+digitalWrite(tPin, HIGH);
+delayMicroseconds(10);
+digitalWrite(tPin, LOW);
+duration = pulseIn(ePin, HIGH); // Reads the echoPin, returns the sound wave travel time in
+microseconds
+distance= duration*0.034/2;
+return distance;
+}
+
 // Insert step 9 here
 void setup(){
 Serial.begin(115200);
@@ -38,3 +57,29 @@ Servo servo1;
 Servo servo2;
 
 }
+
+void loop{
+// Program used for Option 1 on Main Menu
+    // rotates the servo motor from 15 to 165 degrees
+        // for(int i=15;i<=165;i++){
+            //myServo.write(i);
+            //delay(30);
+            //distance = calculateDistance(); 
+    //NOTE: Going to change the print codes below to display text on the LCD instead of Serial Port
+            //Serial.print(i); (Sends the current degree into the Serial Port)
+            //Serial.print(","); (Sends addition character right next to the previous value needed later in the Processing IDE for indexing)
+            //Serial.print(distance); (Sends the distance value into the Serial Port)
+            //Serial.print("."); (Sends addition character right next to the previous value needed later in the Processing IDE for indexing) 
+        }
+    // Repeats the previous lines from 165 to 15 degrees
+        // for(int i =165;i>15;i--){
+            //myServo.write(i)
+            //delay(30);
+            //distance = calculateDistance();
+            //Serial.print(i);
+            //Serial.print(",");
+            //Serial.print(distance);
+            //Serial.print(".");
+        }
+}
+    
