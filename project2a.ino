@@ -37,6 +37,7 @@ void ShowMainMenu(screen val, char optionstate, char keypressed)
     oLCD.print(text, 15, 60);
 }
 
+
 void option2_screen()
 {
     //This is the screen to show when option 2 is pressed
@@ -61,10 +62,47 @@ int calculateDistance(int tPin, int ePin)
     digitalWrite(tPin, HIGH);
     delayMicroseconds(10);
     digitalWrite(tPin, LOW);
+
     duration = pulseIn(ePin, HIGH); // Reads the echoPin, returns the sound wave travel time in microseconds
     distance = duration * 0.034 / 2;
     return distance;
+
+    duration = pulseIn(ePin, HIGH); // Reads the echoPin, returns the sound wave travel time in microseconds
+        distance = duration * 0.034 / 2;
+    return distance;
 }
+
+// Function to rotate sensor and read distance to print on LCD
+void Option1()
+{
+    // rotates the servo motor from 15 to 165 degrees
+    for(int i=15;i<=165;i++){
+        myServo.write(i);
+        delay(30);
+        distance = calculateDistance();
+    //NOTE: Need to change the print codes below to display text on the LCD instead of Serial Port
+        Serial.print(i); 
+        //Sends the current degree into the Serial Port
+        Serial.print(","); 
+        //Sends addition character right next to the previous value needed later in the Processing IDE for indexing
+        Serial.print(distance); 
+        //Sends the distance value into the Serial Port
+        Serial.print("."); 
+        //Sends addition character right next to the previous value needed later in the Processing IDE for indexing
+    }
+    // Repeats the previous lines from 165 to 15 degrees
+    for(int i =165;i>15;i--){
+        myServo.write(i)
+        delay(30);
+        distance = calculateDistance();
+        Serial.print(i);
+        Serial.print(",");
+        Serial.print(distance);
+        Serial.print(".");
+    }
+}
+
+
 
 
 // Insert step 9 here
@@ -103,6 +141,7 @@ void setup()
     ShowMainMenu(SC_MAIN, ' ', ' ');
 };
 
+
 void loop()
 {
     last_key_processed = oIR.GetKeyPressed();
@@ -125,4 +164,6 @@ void loop()
             option3;
         }
 
+
 }
+    
