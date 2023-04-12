@@ -146,5 +146,6 @@ void loop()
     else if (last_key_processed == KEY_3)
         {
             last_key_processed = KEY_NONE;
+
         }
 }
