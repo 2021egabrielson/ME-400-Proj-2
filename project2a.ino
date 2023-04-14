@@ -3,21 +3,25 @@
 #include <Servo.h>
 #include <Wire.h>
 //create 2 servo objects
-Servo servo1;
-Servo servo2;
+Servo panServo;
+Servo tiltServo;
 //create oLCD and oIR instances
 lcdhelper oLCD(ILI9163_4L, 3, 2, 9, 10, 7);
 irhelper oIR;
 //set pin numbers
-const int dig18 = 18;
-const int dig19 = 19;
-const int dig22 = 22;
-const int dig28 = 28;
-const int dig29 = 29;
-const int dig31 = 31;
-const int dig32 = 32;
-const int dig45 = 45;
-const int dig46 = 46;
+
+const int dig18 = 18; //D0 pin of opto left motor
+const int dig19 = 19; //D0 pin of opto right motor
+const int dig20 = 20; //SDA pin of temp/hum sensor
+const int dig21 = 21; //SCL pin of temp/hum sensor
+const int dig22 = 22; //One side of push button
+const int dig28 = 28; //ECHO pin of untrasonic
+const int dig29 = 29; //TRIG pin of ultrasonic
+const int dig31 = 31; //signal pin to PAN servo
+const int dig32 = 32; //signal pin to TILT servo
+const int dig45 = 45; //gate on MOSFET left motor
+const int dig46 = 46; //gate on MOSFET right motor
+
 unsigned long int last_key_processed = KEY_NONE;
 //function to clear the screen
 void ClearScreen()
@@ -146,9 +150,14 @@ void option1()
 void setup()
 {
     Serial.begin(115200);
-
-    //insert step 11 here
-  
+    InitializePWM();
+    //set servo pins
+    panServo.attach(dig31);
+    tiltServo.attach(dig32);
+    //set starting angles at 15 and 25 degrees
+    panServo.write(15);
+    tiltServo.write(25);
+    
     //setting output pins
     pinMode(dig29, OUTPUT);
     pinMode(dig45, OUTPUT);
