@@ -9,6 +9,7 @@ Servo tiltServo;
 lcdhelper oLCD(ILI9163_4L, 3, 2, 9, 10, 7);
 irhelper oIR;
 //set pin numbers
+
 const int dig18 = 18; //D0 pin of opto left motor
 const int dig19 = 19; //D0 pin of opto right motor
 const int dig20 = 20; //SDA pin of temp/hum sensor
@@ -20,6 +21,7 @@ const int dig31 = 31; //signal pin to PAN servo
 const int dig32 = 32; //signal pin to TILT servo
 const int dig45 = 45; //gate on MOSFET left motor
 const int dig46 = 46; //gate on MOSFET right motor
+
 unsigned long int last_key_processed = KEY_NONE;
 //function to clear the screen
 void ClearScreen()
