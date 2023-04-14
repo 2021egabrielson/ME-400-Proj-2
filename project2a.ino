@@ -2,20 +2,25 @@
 #include "irhelper.h"
 #include <Servo.h>
 #include <Wire.h>
-Servo servo1;
-Servo servo2;
+//create 2 servo objects
+Servo panServo;
+Servo tiltServo;
+//create oLCD and oIR instances
 lcdhelper oLCD(ILI9163_4L, 3, 2, 9, 10, 7);
 irhelper oIR;
-const int dig18 = 18;
-const int dig19 = 19;
-const int dig22 = 22;
-const int dig28 = 28;
-const int dig29 = 29;
-const int dig31 = 31;
-const int dig32 = 32;
-const int dig45 = 45;
-const int dig46 = 46;
-int last_key_processed = KEY_NONE;
+//set pin numbers
+const int dig18 = 18; //D0 pin of opto left motor
+const int dig19 = 19; //D0 pin of opto right motor
+const int dig20 = 20; //SDA pin of temp/hum sensor
+const int dig21 = 21; //SCL pin of temp/hum sensor
+const int dig22 = 22; //One side of push button
+const int dig28 = 28; //ECHO pin of untrasonic
+const int dig29 = 29; //TRIG pin of ultrasonic
+const int dig31 = 31; //signal pin to PAN servo
+const int dig32 = 32; //signal pin to TILT servo
+const int dig45 = 45; //gate on MOSFET left motor
+const int dig46 = 46; //gate on MOSFET right motor
+unsigned long int last_key_processed = KEY_NONE;
 //function to clear the screen
 void ClearScreen()
 {
@@ -40,10 +45,46 @@ void ShowMainMenu(screen val, char optionstate, char keypressed)
     sprintf(text, "3. PID Control");
     oLCD.print(text, 15, 60);
 }
-
-void option2_screen()
+void option1_screen_text(float a, float d)
 {
-    //code for option 2 screen here
+    char text[20];
+    oLCD.print("ANGLE "+(String)a+" DEGREES", CENTER, 15);
+    oLCD.print("DISTANCE "+(String)d+" CM", CENTER, 30);
+}
+void draw_radar()
+{   
+    //0,0 it top left corner
+    oLCD.setColor(VGA_WHITE);
+    oLCD.fillScr(VGA_PURPLE);
+    int width = oLCD.getDisplayXSize();
+    int height = oLCD.getDisplayYSize();
+    int r = width/2-4;
+
+    //middle line
+    oLCD.drawLine(width/2,height, width/2,height-(width/2)+3);
+    //150 deg from x+
+    oLCD.drawLine(width/2,height, (width/2) - (r*cos((30*PI)/180)),height-(r*sin((30*PI)/180)-1));
+    //120 deg from x+
+    oLCD.drawLine(width/2,height, (width/2) - (r*cos((60*PI)/180)),height-(r*sin((60*PI)/180)-1));
+    //60 deg from x+
+    oLCD.drawLine(width/2,height, (width/2) + (r*cos((60*PI)/180)),height-(r*sin((60*PI)/180)-1));
+    //30 deg from x+
+    oLCD.drawLine(width/2,height, (width/2) + (r*cos((30*PI)/180)),height-(r*sin((30*PI)/180)-1));
+    
+    oLCD.drawCircle(width/2,height-1,r);
+    oLCD.drawCircle(width/2,height,r/2);
+    
+}
+
+void option2_screen(float temp, float humid)
+{
+    char text[20];
+    sprintf(text, "TEMPERATURE (C):");
+    oLCD.print(text, CENTER, 15);
+    oLCD.print((String)temp, CENTER, 30);
+    sprintf(text, "HUMIDITY (%%)");
+    oLCD.print(text, CENTER, 45);
+    oLCD.print((String)humid, CENTER, 60);
 }
 
 void InitializePWM()
@@ -107,9 +148,14 @@ void option1()
 void setup()
 {
     Serial.begin(115200);
-
-    //insert step 11 here
-  
+    InitializePWM();
+    //set servo pins
+    panServo.attach(dig31);
+    tiltServo.attach(dig32);
+    //set starting angles at 15 and 25 degrees
+    panServo.write(15);
+    tiltServo.write(25);
+    
     //setting output pins
     pinMode(dig29, OUTPUT);
     pinMode(dig45, OUTPUT);
@@ -122,7 +168,7 @@ void setup()
     pinMode(dig18, INPUT_PULLUP);
     pinMode(dig19, INPUT_PULLUP);
     pinMode(dig22, INPUT_PULLUP);
-    //Initializing servos
+    
     
     
     oLCD.LCDInitialize(LANDSCAPE);
@@ -132,20 +178,33 @@ void setup()
 
 void loop()
 {
-    last_key_processed = oIR.GetKeyPressed();
+    //last_key_processed = oIR.GetKeyPressed();
+    last_key_processed = KEY_NONE;
     if (last_key_processed == KEY_1)
     {
         last_key_processed = KEY_NONE;
-        option1;
+        ClearScreen();
+        //option1_screen_text is designed to be in a loop and just update the numbers
+        draw_radar();
+        option1_screen_text(0,12);
+        
+        option1();
+        delay(10000);
+        
     }
     else if(last_key_processed == KEY_2)
         {
+            ClearScreen();
             last_key_processed = KEY_NONE;
-            option2_screen;
+            for(int i = 0;i<=5;i++)
+            {
+                option2_screen(i,i+1);
+                delay(500);
+            }
+            
         }
     else if (last_key_processed == KEY_3)
         {
             last_key_processed = KEY_NONE;
-
         }
 }
