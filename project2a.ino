@@ -45,8 +45,9 @@ void ShowMainMenu(screen val, char optionstate, char keypressed)
     sprintf(text, "3. PID Control");
     oLCD.print(text, 15, 60);
 }
-void option1_screen_text(int a, float d)
+void option1_screen_text(int a, int d)
 {
+    oLCD.setColor(VGA_WHITE);
     char text[20];
     oLCD.print("ANGLE "+(String)a+" DEGREES", CENTER, 15);
     oLCD.print("DISTANCE "+(String)d+" CM", CENTER, 30);
@@ -96,8 +97,8 @@ void InitializePWM()
 }
 
 // Variables used for the duration and distance
-long duration;
-int distance;
+//long duration;
+//int distance;
 
 // Function for calculating the distance measured by the Ultrasonic sensor
 int calculateDistance(int tPin, int ePin)
@@ -108,22 +109,58 @@ int calculateDistance(int tPin, int ePin)
     digitalWrite(tPin, HIGH);
     delayMicroseconds(10);
     digitalWrite(tPin, LOW);
-    duration = pulseIn(ePin, HIGH); 
+    double duration = pulseIn(ePin, HIGH); 
     // Reads the echoPin, returns the sound wave travel time in microseconds
-    distance = duration * 0.034 / 2;
+    int distance = duration * 0.034 / 2;
+    if (distance>30)
+    {
+        distance =30;
+    }
+    //Serial.print("distance: ");
+    //Serial.println(distance);
+    //Serial.print("duration: ");
+    //Serial.println(duration);
+    
     return distance;
 }
 // function to draw sweep lines
-void radarOutput(int i, float d)
+void radarOutput(int i, int d)
 {
     int width = oLCD.getDisplayXSize();
     int height = oLCD.getDisplayYSize();
     int r = width/2-4;
+    float l = (float(d)/30)*r;
+    if(i==30||i==60||i==90||i==120||i==150)
+    {
+        oLCD.setColor(VGA_WHITE);
+    }
+    else
+    {
+        oLCD.setColor(VGA_BLUE);
+    }
+    float endx_blue = (width/2) + (l*cos((i*PI)/180)); //sets the end point of the blue line
+    float endy_blue = height-(l*sin((i*PI)/180)-1); //sets the end point of the blue line
+    float endx_red = (width/2) + (r*cos((i*PI)/180));
+    float endy_red = height-(r*sin((i*PI)/180)-1);
+    oLCD.drawLine(width/2,height, endx_blue, endy_blue);
+    //continue to keep the radar circles
     
+    if(l!=30.0)
+    {
+        oLCD.setColor(VGA_RED);
+        oLCD.drawLine(endx_blue,endy_blue, endx_red, endy_red);
+
+    }
+    oLCD.setColor(VGA_WHITE);
+    oLCD.drawPixel((width/2) + int((r/2*cos((i*PI)/180))),height-((float(r/2)*sin((i*PI)/180)-1)));
+    
+
+
 }
 // Function to rotate sensor and read distance to print on LCD
 void option1()
-{
+{   
+    int distance = calculateDistance(dig29, dig28);
     // rotates the servo motor from 15 to 165 degrees
     for (int i = 15; i <= 165; i++)
     {
@@ -131,6 +168,7 @@ void option1()
         delay(30);
         distance = calculateDistance(dig29,dig28);
         option1_screen_text(i,distance);
+        radarOutput(i,distance);
         //implement radar display here
     }
     // Repeats the previous lines from 165 to 15 degrees
@@ -138,7 +176,7 @@ void option1()
     {
         //myServo.write(i)
         delay(30);
-        //distance = calculateDistance();
+        distance = calculateDistance(dig29, dig28);
         Serial.print(i);
         Serial.print(",");
         Serial.print(distance);
@@ -163,9 +201,9 @@ void setup()
     pinMode(dig45, OUTPUT);
     pinMode(dig46, OUTPUT);
     //setting input pins
-    pinMode(dig28, OUTPUT);
-    pinMode(dig31, OUTPUT);
-    pinMode(dig32, OUTPUT);
+    pinMode(dig28, INPUT);
+    pinMode(dig31, INPUT);
+    pinMode(dig32, INPUT);
     //setting pulled high pins
     pinMode(dig18, INPUT_PULLUP);
     pinMode(dig19, INPUT_PULLUP);
@@ -181,7 +219,7 @@ void setup()
 void loop()
 {
     //last_key_processed = oIR.GetKeyPressed();
-    last_key_processed = KEY_NONE;
+    last_key_processed = KEY_1;
     if (last_key_processed == KEY_1)
     {
         last_key_processed = KEY_NONE;
