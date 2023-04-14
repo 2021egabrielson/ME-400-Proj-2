@@ -49,8 +49,8 @@ void option1_screen_text(int a, int d)
 {
     oLCD.setColor(VGA_WHITE);
     char text[20];
-    oLCD.print("ANGLE "+(String)a+" DEGREES", CENTER, 15);
-    oLCD.print("DISTANCE "+(String)d+" CM", CENTER, 30);
+    oLCD.print("  ANGLE "+(String)a+" DEGREES  ", CENTER, 15);
+    oLCD.print("  DISTANCE "+(String)d+" CM  ", CENTER, 30);
 }
 void draw_radar()
 {   
