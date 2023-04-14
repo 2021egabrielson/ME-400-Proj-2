@@ -9,7 +9,6 @@ Servo tiltServo;
 lcdhelper oLCD(ILI9163_4L, 3, 2, 9, 10, 7);
 irhelper oIR;
 //set pin numbers
-
 const int dig18 = 18; //D0 pin of opto left motor
 const int dig19 = 19; //D0 pin of opto right motor
 const int dig20 = 20; //SDA pin of temp/hum sensor
@@ -21,7 +20,6 @@ const int dig31 = 31; //signal pin to PAN servo
 const int dig32 = 32; //signal pin to TILT servo
 const int dig45 = 45; //gate on MOSFET left motor
 const int dig46 = 46; //gate on MOSFET right motor
-
 unsigned long int last_key_processed = KEY_NONE;
 //function to clear the screen
 void ClearScreen()
@@ -47,7 +45,7 @@ void ShowMainMenu(screen val, char optionstate, char keypressed)
     sprintf(text, "3. PID Control");
     oLCD.print(text, 15, 60);
 }
-void option1_screen_text(float a, float d)
+void option1_screen_text(int a, float d)
 {
     char text[20];
     oLCD.print("ANGLE "+(String)a+" DEGREES", CENTER, 15);
@@ -77,6 +75,8 @@ void draw_radar()
     oLCD.drawCircle(width/2,height,r/2);
     
 }
+
+
 
 void option2_screen(float temp, float humid)
 {
@@ -113,25 +113,25 @@ int calculateDistance(int tPin, int ePin)
     distance = duration * 0.034 / 2;
     return distance;
 }
-
+// function to draw sweep lines
+void radarOutput(int i, float d)
+{
+    int width = oLCD.getDisplayXSize();
+    int height = oLCD.getDisplayYSize();
+    int r = width/2-4;
+    
+}
 // Function to rotate sensor and read distance to print on LCD
 void option1()
 {
     // rotates the servo motor from 15 to 165 degrees
     for (int i = 15; i <= 165; i++)
     {
-        //myServo.write(i);
+        panServo.write(i);
         delay(30);
-        //distance = calculateDistance();
-        //NOTE: Need to change the print codes below to display text on the LCD instead of Serial Port
-        Serial.print(i);
-        //Sends the current degree into the Serial Port
-        Serial.print(",");
-        //Sends addition character right next to the previous value needed later in the Processing IDE for indexing
-        Serial.print(distance);
-        //Sends the distance value into the Serial Port
-        Serial.print(".");
-        //Sends addition character right next to the previous value needed later in the Processing IDE for indexing
+        distance = calculateDistance(dig29,dig28);
+        option1_screen_text(i,distance);
+        //implement radar display here
     }
     // Repeats the previous lines from 165 to 15 degrees
     for (int i = 165; i > 15; i--)
@@ -188,7 +188,6 @@ void loop()
         ClearScreen();
         //option1_screen_text is designed to be in a loop and just update the numbers
         draw_radar();
-        option1_screen_text(0,12);
         
         option1();
         delay(10000);
