@@ -201,6 +201,35 @@ void option1()
 }
 
 // Insert step 9 here
+void pi_control(float setpt, float interval)
+{
+    analogWrite(dig46, 90);
+    analogWrite(dig45,40);
+    delay(500);
+    float integral = 0;
+    float error = 0;
+    double pulseRight = 0;
+    double pulseLeft = 0;  
+    double rightPeriod = 0;
+    double leftPeriod=0; 
+    while (digitalRead(dig22) != LOW)
+    {
+        delay(30);
+        
+        for(int i=0;i<5;i++)
+        {
+            pulseRight = pulseIn(18,LOW);
+            pulseLeft = pulseIn(19,LOW);
+        }
+        rightPeriod = (pulseRight/5)*2;
+        leftPeriod = (pulseLeft/5)*2;
+        Serial.print("rp=");
+        Serial.print(rightPeriod);
+        Serial.print(" lp=");
+        Serial.println(leftPeriod);
+    }
+    analogWrite(dig46,0);
+}
 void setup()
 {
     Serial.begin(115200);
@@ -260,5 +289,6 @@ void loop()
     else if (last_key_processed == KEY_3)
         {
             last_key_processed = KEY_NONE;
+            pi_control(0,0.2);
         }
 }
