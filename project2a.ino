@@ -30,12 +30,16 @@ void ClearScreen()
     int y = oLCD.getDisplayYSize();
     oLCD.drawRoundRect(5, 5, x - 5, y - 5);
 }
+void BlankScreen()
+{
+    oLCD.fillScr(VGA_PURPLE);
+}
 //function to bring up the main menu
 void ShowMainMenu(screen val, char optionstate, char keypressed)
 
 {
     char text[20];
-    ClearScreen();
+    //ClearScreen();
     sprintf(text, "SELECTION OPTION");
     oLCD.print(text, 15, 15);
     sprintf(text, "1. Radar Sweep");
@@ -143,14 +147,21 @@ void radarOutput(int i, int d)
     float endx_red = (width/2) + (r*cos((i*PI)/180));
     float endy_red = height-(r*sin((i*PI)/180)-1);
     oLCD.drawLine(width/2,height, endx_blue, endy_blue);
-    //continue to keep the radar circles
-    
-    if(l!=30.0)
+    //Logic to keep the radar circles w/o redrawing them
+    Serial.println(int(l));
+    if(int(l)!=r)
     {
-        oLCD.setColor(VGA_RED);
+        if(i==30||i==60||i==90||i==120||i==150)
+        {
+            oLCD.setColor(VGA_WHITE);
+        }
+        else
+        {
+            oLCD.setColor(VGA_RED);  
+        }
         oLCD.drawLine(endx_blue,endy_blue, endx_red, endy_red);
-
     }
+    
     oLCD.setColor(VGA_WHITE);
     oLCD.drawPixel((width/2) + int((r/2*cos((i*PI)/180))),height-((float(r/2)*sin((i*PI)/180)-1)));
     
@@ -172,16 +183,21 @@ void option1()
         //implement radar display here
     }
     // Repeats the previous lines from 165 to 15 degrees
+    while (oIR.GetKeyPressed() != KEY_RETURN)
+    {
+        delay(10);
+        Serial.println("waiting");
+    }
     for (int i = 165; i > 15; i--)
     {
-        //myServo.write(i)
+        panServo.write(i);
         delay(30);
-        distance = calculateDistance(dig29, dig28);
-        Serial.print(i);
-        Serial.print(",");
-        Serial.print(distance);
-        Serial.print(".");
+        distance = calculateDistance(dig29,dig28);
+        option1_screen_text(i,distance);
+        radarOutput(i,distance);
     }
+    ClearScreen();
+    ShowMainMenu(SC_MAIN, ' ', ' ');
 }
 
 // Insert step 9 here
@@ -202,8 +218,8 @@ void setup()
     pinMode(dig46, OUTPUT);
     //setting input pins
     pinMode(dig28, INPUT);
-    pinMode(dig31, INPUT);
-    pinMode(dig32, INPUT);
+    pinMode(dig31, OUTPUT);//<---these need to be out put IDK why instructions say input
+    pinMode(dig32, OUTPUT);//<---
     //setting pulled high pins
     pinMode(dig18, INPUT_PULLUP);
     pinMode(dig19, INPUT_PULLUP);
@@ -218,18 +234,17 @@ void setup()
 
 void loop()
 {
-    //last_key_processed = oIR.GetKeyPressed();
-    last_key_processed = KEY_1;
+    last_key_processed = oIR.GetKeyPressed();
+    //last_key_processed = KEY_NONE;
     if (last_key_processed == KEY_1)
     {
+        Serial.println(panServo.read());
+        Serial.println(tiltServo.read());
         last_key_processed = KEY_NONE;
-        ClearScreen();
         //option1_screen_text is designed to be in a loop and just update the numbers
         draw_radar();
-        
         option1();
         delay(10000);
-        
     }
     else if(last_key_processed == KEY_2)
         {
