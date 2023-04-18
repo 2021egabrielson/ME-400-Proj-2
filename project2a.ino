@@ -281,6 +281,75 @@ void pi_control(float setpt, float interval)
     analogWrite(dig46,0);
     analogWrite(dig45,0);
 }
+
+//
+// Routine to Plot data on LCD
+//
+void PlotBody(double x=0, double y=0, double xmin=0, double xmax=0, double ymin=0, double ymax=0, bool
+reset=true, bool resetstatic=false)
+{
+    static double lx;
+    static double ly;
+    if (resetstatic == true){
+        lx=x;
+        ly=y;
+    }
+    else
+    {
+        // Adjust upper and lower bounds if they are equal
+        if (abs(xmax-xmin) < 0.001){
+        xmin = 0.5*xmin;
+    xmax = 1.5*xmin;
+    }
+    // Get screem coordinates.
+    int xLCD = oLCD.getDisplayXSize();
+    int yLCD = oLCD.getDisplayYSize();
+    double xLCDrange = xLCD - 20;
+    double yLCDrange = yLCD - 30;
+    if (reset == true){
+        oLCD.setColor(VGA_PURPLE);
+        oLCD.fillRect(16, 16, xLCD - 6, yLCD - 16);
+    }
+    oLCD.setColor(VGA_WHITE);
+    oLCD.setBrightness(0);
+    // Calculate the x and y range of data.
+    double xrange = xmax - xmin;
+    double yrange = ymax - ymin;
+    //Plot line between point and prior point
+    oLCD.drawLine(((lx-xmin)/xrange)*(xLCDrange)+15,((ymax-ly)/yrange)*(yLCDrange)+15,
+    ((x-xmin)/xrange)*(xLCDrange)+15,((ymax-y)/yrange)*(yLCDrange)+15);
+    // Plot point at current location
+    oLCD.drawPixel(((x-xmin)/xrange)*(xLCDrange)+15,((ymax-y)/yrange)*(yLCDrange)+15);
+    lx = x;
+    ly = y;
+    }
+}
+//
+// Routine to Plot data on LCD
+//
+void PlotHeader()
+{
+    oLCD.InitLCD(LANDSCAPE);
+    oLCD.clrScr();
+    oLCD.setBackColor(VGA_PURPLE);
+    oLCD.fillScr(VGA_PURPLE);
+    oLCD.setFont(SmallFont);
+    oLCD.print(F("MOTOR CONTROL"),CENTER,2);
+    oLCD.print(F("time (s)"),CENTER,115);
+    oLCD.print(F("speed (rpm)"),0,115, 270);
+    // Get screem coordinates.
+    int xLCD = oLCD.getDisplayXSize();
+    int yLCD = oLCD.getDisplayYSize();
+    double xLCDrange = xLCD - 20;
+    double yLCDrange = yLCD - 30;
+    // Draw rectangular border to screen.
+    oLCD.drawRoundRect(15, 15, xLCD - 5, yLCD - 15);
+    oLCD.setColor(VGA_WHITE);
+    oLCD.setBrightness(0);
+    PlotBody(0, 0, 0, 1, 0, 1, false, true);
+}
+
+
 void setup()
 {
     Serial.begin(115200);
