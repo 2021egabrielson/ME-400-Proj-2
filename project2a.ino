@@ -94,6 +94,34 @@ void option2_screen(float temp, float humid)
     oLCD.print((String)humid, CENTER, 60);
 }
 
+bool ReadAndDisplayData()
+{
+    //Start communication with sensor and then end it to
+    // wake up sensor so it will ready to provide data
+    Wire.beginTransmission(0x5C);
+    Wire.endTransmission();
+
+    //Start communication, request 4 bytes from 0x03 starting at 0x00
+    Wire.beginTransmission(0x5C);
+    Wire.write(0x03);
+    Wire.write(0x00);
+    Wire.write(4);
+
+    //End the transmission and delay 1500 microsecond
+    Wire.endTransmission(true);
+    delay(1500);
+
+    //Request 8 bytes of data from sensor over I2C bus
+    Wire.requestFrom(0x5C, 8);
+
+    //Creates bytes array, populates using Wire.read
+    byte b[8];
+    for (int i = 0; i < 8; i++)
+    {
+        b[i] = Wire.read();
+    }
+}
+
 void InitializePWM()
 {
     TCCR5A = 0b00000001;
@@ -240,6 +268,8 @@ void setup()
     //set starting angles at 15 and 25 degrees
     panServo.write(15);
     tiltServo.write(25);
+    //joins the I2C bus
+    Wire.begin();
     
     //setting output pins
     pinMode(dig29, OUTPUT);
