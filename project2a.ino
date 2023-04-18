@@ -203,6 +203,8 @@ void option1()
 // Insert step 9 here
 void pi_control(float setpt, float interval)
 {
+    analogWrite(dig45,90);
+    delay(200);
     analogWrite(dig46, 90);
     analogWrite(dig45,40);
     delay(500);
@@ -212,23 +214,41 @@ void pi_control(float setpt, float interval)
     double pulseLeft = 0;  
     double rightPeriod = 0;
     double leftPeriod=0; 
+    double rightRPM = 0;
+    double leftRPM =0;
+    double conversion = 0;
     while (digitalRead(dig22) != LOW)
     {
-        delay(30);
-        
+        unsigned long startTime = millis();
+        //delay(30);
+        pulseRight = 0;
+        pulseLeft = 0;
         for(int i=0;i<5;i++)
         {
-            pulseRight = pulseIn(18,LOW);
-            pulseLeft = pulseIn(19,LOW);
+            pulseRight = pulseRight +pulseIn(dig19,LOW);
+            pulseLeft = pulseLeft +pulseIn(dig18,LOW);
         }
-        rightPeriod = (pulseRight/5)*2;
-        leftPeriod = (pulseLeft/5)*2;
-        Serial.print("rp=");
-        Serial.print(rightPeriod);
-        Serial.print(" lp=");
-        Serial.println(leftPeriod);
+        rightPeriod = (pulseRight*2)/5;
+        leftPeriod = (pulseLeft*2)/5;
+        //Serial.print("rp=");
+        //Serial.print(rightPeriod);
+        //Serial.print(" lp=");
+        //Serial.println(leftPeriod);
+        rightRPM = ((1/rightPeriod)*20.0)*2*PI*1000*60;
+        leftRPM = ((1/leftPeriod)*20.0)*2*PI*1000*60;
+        //Serial.print("rs=");
+        //Serial.print(rightRPM);
+        //Serial.print(" ls=");
+        //Serial.println(leftRPM);
+        Serial.println(millis()-startTime);
+        while(millis()-startTime < 300)
+        {
+            delay(1);
+        }
+        Serial.println(millis()-startTime);
     }
     analogWrite(dig46,0);
+    analogWrite(dig45,0);
 }
 void setup()
 {
