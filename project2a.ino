@@ -1,7 +1,10 @@
+
 #include "lcdhelper.h"
 #include "irhelper.h"
 #include <Servo.h>
 #include <Wire.h>
+//for a .3 interval: kp=.39,tu=.468, Ki=1 
+
 //create 2 servo objects
 Servo panServo;
 Servo tiltServo;
@@ -21,6 +24,10 @@ const int dig32 = 32; //signal pin to TILT servo
 const int dig45 = 45; //gate on MOSFET left motor
 const int dig46 = 46; //gate on MOSFET right motor
 unsigned long int last_key_processed = KEY_NONE;
+const double Ki= 1.0;
+const double Kp= 0.39;
+const double Ku= 0.8667;
+const double Tu= 0.468;
 //function to clear the screen
 void ClearScreen()
 {
@@ -229,15 +236,21 @@ void option1()
 }
 
 // Insert step 9 here
-void pi_control(float setpt, float interval)
+double piIntegral(double lower, double upper,double et, int n)
 {
-    analogWrite(dig45,90);
-    delay(200);
-    analogWrite(dig46, 90);
-    analogWrite(dig45,40);
-    delay(500);
-    float integral = 0;
-    float error = 0;
+    double sum=0;
+    for(int i=lower; i<=upper; i=i+(upper-lower)/n)
+    {
+        sum = sum + et*i;
+    }
+    return sum;
+}
+
+int outputCalculator(float setpt, float inerval, int input)
+{
+    unsigned long startTime = millis();
+    double integral = 0;
+    double error = 0;
     double pulseRight = 0;
     double pulseLeft = 0;  
     double rightPeriod = 0;
@@ -245,15 +258,12 @@ void pi_control(float setpt, float interval)
     double rightRPM = 0;
     double leftRPM =0;
     double conversion = 20*2*PI*1000*60;
+    double deltaSpeed = 0;
+    double deltaTime = 300; //time in milliseconds
     int numberOfLoops = 2; // Instructions say set to 5 but when this happens
     //the loop takes ~580 milis to run. instructions say it needs to be sub 300
-    while (digitalRead(dig22) != LOW)
-    {
-        unsigned long startTime = millis();
-        //delay(30);
-        pulseRight = 0;
-        pulseLeft = 0;
-        for(int i=0;i<numberOfLoops;i++)
+    
+    for(int i=0;i<numberOfLoops;i++)
         {
             pulseRight = pulseRight +pulseIn(dig19,LOW);
             pulseLeft = pulseLeft +pulseIn(dig18,LOW);
@@ -271,15 +281,49 @@ void pi_control(float setpt, float interval)
         Serial.print(" ls=");
         Serial.println(leftRPM);
         Serial.println(millis()-startTime);
-        while(millis()-startTime < 300)
+        deltaSpeed=rightRPM-leftRPM;
+        error = deltaSpeed-setpt; // error is positive if left > right
+        integral=Ki*(setpt-input)*(deltaTime/1000);
+        Serial.print("error=");
+        Serial.println(error);
+        //ready for step 7
+        Serial.print("integral=");
+        Serial.println(integral);
+        //this loop has to be the last part of the while loop
+        while(millis()-startTime < deltaTime)
         {
             delay(1);
         }
         Serial.print("deltat=");
-        Serial.println((millis()-startTime)/1000);
+        Serial.println((millis()-startTime)/1000.0);
+        return Kp*(setpt-input)+Ki*integral;
+}
+void pi_control(float setpt, float interval)
+{
+    analogWrite(dig45,90);
+    delay(200);
+    analogWrite(dig46, 90);
+    analogWrite(dig45,40);
+    delay(500);
+    int count=1;
+    double input = 0;
+    while (digitalRead(dig22) != LOW)
+    {
+        if (count == 1)
+        {
+            input = outputCalculator(setpt, interval,40);
+            analogWrite(dig45, input);
+        }
+        else
+        {
+            input = outputCalculator(setpt, interval,input);
+            analogWrite(dig45, input);
+        }
+        
+        count++;
     }
-    analogWrite(dig46,0);
-    analogWrite(dig45,0);
+    //analogWrite(dig46,0);
+    //analogWrite(dig45,0);
 }
 
 //
@@ -411,6 +455,8 @@ void loop()
     else if (last_key_processed == KEY_3)
         {
             last_key_processed = KEY_NONE;
-            pi_control(0,0.2);
+            pi_control(0,0.2);//arg1 float: set point in rpm difference between mototrs
+            //arg 2 float: integraion constant
+
         }
 }
