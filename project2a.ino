@@ -216,36 +216,39 @@ void pi_control(float setpt, float interval)
     double leftPeriod=0; 
     double rightRPM = 0;
     double leftRPM =0;
-    double conversion = 0;
+    double conversion = 20*2*PI*1000*60;
+    int numberOfLoops = 2; // Instructions say set to 5 but when this happens
+    //the loop takes ~580 milis to run. instructions say it needs to be sub 300
     while (digitalRead(dig22) != LOW)
     {
         unsigned long startTime = millis();
         //delay(30);
         pulseRight = 0;
         pulseLeft = 0;
-        for(int i=0;i<5;i++)
+        for(int i=0;i<numberOfLoops;i++)
         {
             pulseRight = pulseRight +pulseIn(dig19,LOW);
             pulseLeft = pulseLeft +pulseIn(dig18,LOW);
         }
-        rightPeriod = (pulseRight*2)/5;
-        leftPeriod = (pulseLeft*2)/5;
-        //Serial.print("rp=");
-        //Serial.print(rightPeriod);
-        //Serial.print(" lp=");
-        //Serial.println(leftPeriod);
-        rightRPM = ((1/rightPeriod)*20.0)*2*PI*1000*60;
-        leftRPM = ((1/leftPeriod)*20.0)*2*PI*1000*60;
-        //Serial.print("rs=");
-        //Serial.print(rightRPM);
-        //Serial.print(" ls=");
-        //Serial.println(leftRPM);
+        rightPeriod = (pulseRight*2)/numberOfLoops;
+        leftPeriod = (pulseLeft*2)/numberOfLoops;
+        Serial.print("rp=");
+        Serial.print(rightPeriod);
+        Serial.print(" lp=");
+        Serial.println(leftPeriod);
+        rightRPM = (1/rightPeriod)*conversion;
+        leftRPM = (1/leftPeriod)*conversion;
+        Serial.print("rs=");
+        Serial.print(rightRPM);
+        Serial.print(" ls=");
+        Serial.println(leftRPM);
         Serial.println(millis()-startTime);
         while(millis()-startTime < 300)
         {
             delay(1);
         }
-        Serial.println(millis()-startTime);
+        Serial.print("deltat=");
+        Serial.println((millis()-startTime)/1000);
     }
     analogWrite(dig46,0);
     analogWrite(dig45,0);
