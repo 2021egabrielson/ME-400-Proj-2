@@ -27,7 +27,6 @@ const double Ki = 1.0;
 const double Kp = 0.39;
 const double Ku = 0.8667;
 const double Tu = 0.468;
-
 //function to clear the screen
 void ClearScreen()
 {
@@ -41,9 +40,9 @@ void BlankScreen()
 {
     oLCD.fillScr(VGA_PURPLE);
 }
-
 //function to bring up the main menu
 void ShowMainMenu(screen val, char optionstate, char keypressed)
+
 {
     char text[20];
     //ClearScreen();
@@ -56,7 +55,6 @@ void ShowMainMenu(screen val, char optionstate, char keypressed)
     sprintf(text, "3. PID Control");
     oLCD.print(text, 15, 60);
 }
-
 void option1_screen_text(int a, int d)
 {
     oLCD.setColor(VGA_WHITE);
@@ -64,7 +62,6 @@ void option1_screen_text(int a, int d)
     oLCD.print("  ANGLE " + (String)a + " DEGREES  ", CENTER, 15);
     oLCD.print("  DISTANCE " + (String)d + " CM  ", CENTER, 30);
 }
-
 void draw_radar()
 {
     //0,0 it top left corner
