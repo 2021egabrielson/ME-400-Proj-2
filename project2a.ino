@@ -406,14 +406,14 @@ void option3(double time, double speed)
     PlotHeader();
     for(int i = 20; i > 0; i + 20)
     {
-        int xmin = 0;
-        int xmax = 20;
+        int xmin3 = 0;
+        int xmax3 = 20;
         while (speed <= i)
         {
-            PlotBody(time, speed, xmin, xmax, 0, 400, true, false);
+            PlotBody(time, speed, xmin3, xmax3, 0, 400, true, false);
         }
-        xmin = xmin + 20;
-        xmax = xmax + 20;
+        xmin3 = xmin3 + 20;
+        xmax3 = xmax3 + 20;
     }
 }
 
