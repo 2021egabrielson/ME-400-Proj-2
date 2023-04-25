@@ -24,8 +24,8 @@ const int dig32 = 32; //signal pin to TILT servo
 const int dig45 = 45; //gate on MOSFET left motor
 const int dig46 = 46; //gate on MOSFET right motor
 unsigned long int last_key_processed = KEY_NONE;
-const double Ki= 1.0;
-const double Kp= 0.39;
+const double Ki= 0.307;
+const double Kp= 0.2556;
 const double Ku= 0.8667;
 const double Tu= 0.468;
 //function to clear the screen
@@ -236,95 +236,84 @@ void option1()
 }
 
 // Insert step 9 here
-double piIntegral(double lower, double upper,double et, int n)
+void pi_control(int setpt, int interval)
 {
-    double sum=0;
-    for(int i=lower; i<=upper; i=i+(upper-lower)/n)
-    {
-        sum = sum + et*i;
-    }
-    return sum;
-}
-
-int outputCalculator(float setpt, float inerval, int input)
-{
-    unsigned long startTime = millis();
-    double integral = 0;
-    double error = 0;
-    double pulseRight = 0;
-    double pulseLeft = 0;  
-    double rightPeriod = 0;
-    double leftPeriod=0; 
+    int output =0;
+    int count =1;
+    double conversion = 1000000*60;
+    unsigned long int start_time = 0;
+    double et = 0;
     double rightRPM = 0;
-    double leftRPM =0;
-    double conversion = 20*2*PI*1000*60;
-    double deltaSpeed = 0;
-    double deltaTime = 300; //time in milliseconds
-    int numberOfLoops = 2; // Instructions say set to 5 but when this happens
-    //the loop takes ~580 milis to run. instructions say it needs to be sub 300
-    
-    for(int i=0;i<numberOfLoops;i++)
+    double leftRPM = 0;
+    double integral = 0;
+    double deltat = 0;
+    while(analogRead(dig22) != LOW)
+    {   
+        start_time = millis();
+        if(count == 1)
         {
-            pulseRight = pulseRight +pulseIn(dig19,LOW);
-            pulseLeft = pulseLeft +pulseIn(dig18,LOW);
+            analogWrite(dig46, 90);
+            analogWrite(dig45,90);
+            delay(100);
+            analogWrite(dig45,40);
+            delay(500);
+            double integral = 0;
+            double et = 0;
+            count = count+1;
+            Serial.println("still here");
         }
-        rightPeriod = (pulseRight*2)/numberOfLoops;
-        leftPeriod = (pulseLeft*2)/numberOfLoops;
-        Serial.print("rp=");
-        Serial.print(rightPeriod);
-        Serial.print(" lp=");
-        Serial.println(leftPeriod);
-        rightRPM = (1/rightPeriod)*conversion;
-        leftRPM = (1/leftPeriod)*conversion;
-        Serial.print("rs=");
-        Serial.print(rightRPM);
-        Serial.print(" ls=");
-        Serial.println(leftRPM);
-        Serial.println(millis()-startTime);
-        deltaSpeed=rightRPM-leftRPM;
-        error = deltaSpeed-setpt; // error is positive if left > right
-        integral=Ki*(setpt-input)*(deltaTime/1000);
-        Serial.print("error=");
-        Serial.println(error);
-        //ready for step 7
-        Serial.print("integral=");
-        Serial.println(integral);
-        //this loop has to be the last part of the while loop
-        while(millis()-startTime < deltaTime)
+        else
+        {
+            delay(30);
+            double sumR = 0;
+            double sumL = 0;
+            for(int i = 0; i<5;i++)
+            {
+                sumR = sumR + pulseIn(dig19,LOW)*2;
+                sumL = sumL + pulseIn(dig18,LOW)*2;
+            }
+            double rightPeriod = (sumR)/5;
+            double leftPeriod = (sumL)/5;
+            rightRPM = (1/(rightPeriod*20))*conversion;
+            leftRPM = (1/(leftPeriod*20))*conversion;
+            Serial.print("Rp=");
+            Serial.print(rightPeriod);
+            Serial.print("Lp=");
+            Serial.println(leftPeriod);
+            Serial.print("RS=");
+            Serial.print(rightRPM);
+            Serial.print("LS=");
+            Serial.println(leftRPM);
+            count = count +1;
+            
+        }
+        while(millis()-start_time < 300)
         {
             delay(1);
         }
         Serial.print("deltat=");
-        Serial.println((millis()-startTime)/1000.0);
-        return Kp*(setpt-input)+Ki*integral;
-}
-void pi_control(float setpt, float interval)
-{
-    analogWrite(dig45,90);
-    delay(200);
-    analogWrite(dig46, 90);
-    analogWrite(dig45,40);
-    delay(500);
-    int count=1;
-    double input = 0;
-    while (digitalRead(dig22) != LOW)
-    {
-        if (count == 1)
+        deltat = double(millis()-start_time)/1000;
+        Serial.println(deltat);
+        et = (rightRPM-leftRPM)-setpt;
+        Serial.print("error=");
+        Serial.println(et);
+        Serial.print("integral=");
+        Serial.println(et*deltat);
+        output = Kp*et+Ki*integral;
+        Serial.print("output=");
+        Serial.println(output);
+        if(output<40)
         {
-            input = outputCalculator(setpt, interval,40);
-            analogWrite(dig45, input);
+            output = 40;
         }
-        else
+        else if(output>40)
         {
-            input = outputCalculator(setpt, interval,input);
-            analogWrite(dig45, input);
+            output = 100;
         }
-        
-        count++;
+        analogWrite(dig45,output);
     }
-    //analogWrite(dig46,0);
-    //analogWrite(dig45,0);
 }
+
 void setup()
 {
     Serial.begin(115200);
@@ -360,6 +349,7 @@ void setup()
 
 void loop()
 {
+    Serial.print("made it here");
     last_key_processed = oIR.GetKeyPressed();
     //last_key_processed = KEY_NONE;
     if (last_key_processed == KEY_1)
@@ -383,7 +373,7 @@ void loop()
             }
             
         }
-    else if (last_key_processed == KEY_3)
+    else if (last_key_processed = KEY_3)
         {
             last_key_processed = KEY_NONE;
             pi_control(0,0.2);//arg1 float: set point in rpm difference between mototrs
