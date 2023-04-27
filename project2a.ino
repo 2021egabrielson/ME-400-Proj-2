@@ -23,8 +23,8 @@ const int dig32 = 32; //signal pin to TILT servo
 const int dig45 = 45; //gate on MOSFET left motor
 const int dig46 = 46; //gate on MOSFET right motor
 unsigned long int last_key_processed = KEY_NONE;
-const double Ki = 1.0;
-const double Kp = 0.39;
+const double Ki = 0.307;
+const double Kp = 0.2556;
 const double Ku = 0.8667;
 const double Tu = 0.468;
 //function to clear the screen
@@ -36,13 +36,13 @@ void ClearScreen()
     int y = oLCD.getDisplayYSize();
     oLCD.drawRoundRect(5, 5, x - 5, y - 5);
 }
+//function to make purple screen
 void BlankScreen()
 {
     oLCD.fillScr(VGA_PURPLE);
 }
 //function to bring up the main menu
 void ShowMainMenu(screen val, char optionstate, char keypressed)
-
 {
     char text[20];
     //ClearScreen();
@@ -91,10 +91,10 @@ void option2_screen(float temp, float humid)
     char text[20];
     sprintf(text, "TEMPERATURE (C):");
     oLCD.print(text, CENTER, 15);
-    oLCD.print((String)temp, CENTER, 30);
+    oLCD.printNumF(temp, 1, CENTER, 30);
     sprintf(text, "HUMIDITY (%)");
     oLCD.print(text, CENTER, 45);
-    oLCD.print((String)humid, CENTER, 60);
+    oLCD.printNumF(humid, 1, CENTER, 60);
 }
 
 bool ReadAndDisplayData()
@@ -113,12 +113,13 @@ bool ReadAndDisplayData()
     //End the transmission and delay 1500 microsecond
     Wire.endTransmission(true);
 
-    if(Wire.endTransmission() == 1){
+    if (Wire.endTransmission(true) != 0)
+    {
         return false;
-        break;
     }
 
-    else{
+    else
+    {
         return true;
     }
     delay(1500);
@@ -133,9 +134,11 @@ bool ReadAndDisplayData()
         arr[i] = Wire.read();
     }
 
-    int temp = (arr[4]+arr[5])/10;
+    float temp = ((int)arr[4] * pow(2, 8) + (int)arr[5]) / 10.0;
 
-    int humid = (arr[2]+arr[3])/10;
+    float humid = ((int)arr[2] * pow(2, 8) + (int)arr[3]) / 10.0;
+
+    option2_screen(temp, humid);
 }
 
 void InitializePWM()
@@ -242,94 +245,97 @@ void option1()
 }
 
 // Insert step 9 here
-double piIntegral(double lower, double upper, double et, int n)
-{
-    double sum = 0;
-    for (int i = lower; i <= upper; i = i + (upper - lower) / n)
-    {
-        sum = sum + et * i;
-    }
-    return sum;
-}
 
-int outputCalculator(float setpt, float inerval, int input)
+void pi_control(int setpt, int interval)
 {
-    unsigned long startTime = millis();
-    double integral = 0;
-    double error = 0;
-    double pulseRight = 0;
-    double pulseLeft = 0;
-    double rightPeriod = 0;
-    double leftPeriod = 0;
+    int output = 0;
+    int new_output = 0;
+    int count = 1;
+    double conversion = 1000000 * 60;
+    unsigned long int start_time = 0;
+    double et = 0;
     double rightRPM = 0;
     double leftRPM = 0;
-    double conversion = 20 * 2 * PI * 1000 * 60;
-    double deltaSpeed = 0;
-    double deltaTime = 300; //time in milliseconds
-    int numberOfLoops = 2;  // Instructions say set to 5 but when this happens
-    //the loop takes ~580 milis to run. instructions say it needs to be sub 300
-
-    for (int i = 0; i < numberOfLoops; i++)
+    double integral = 0;
+    double deltat = 0;
+    double maxRPM = 0;
+    while (analogRead(dig22) != LOW)
     {
-        pulseRight = pulseRight + pulseIn(dig19, LOW);
-        pulseLeft = pulseLeft + pulseIn(dig18, LOW);
-    }
-    rightPeriod = (pulseRight * 2) / numberOfLoops;
-    leftPeriod = (pulseLeft * 2) / numberOfLoops;
-    Serial.print("rp=");
-    Serial.print(rightPeriod);
-    Serial.print(" lp=");
-    Serial.println(leftPeriod);
-    rightRPM = (1 / rightPeriod) * conversion;
-    leftRPM = (1 / leftPeriod) * conversion;
-    Serial.print("rs=");
-    Serial.print(rightRPM);
-    Serial.print(" ls=");
-    Serial.println(leftRPM);
-    Serial.println(millis() - startTime);
-    deltaSpeed = rightRPM - leftRPM;
-    error = deltaSpeed - setpt; // error is positive if left > right
-    integral = Ki * (setpt - input) * (deltaTime / 1000);
-    Serial.print("error=");
-    Serial.println(error);
-    //ready for step 7
-    Serial.print("integral=");
-    Serial.println(integral);
-    //this loop has to be the last part of the while loop
-    while (millis() - startTime < deltaTime)
-    {
-        delay(1);
-    }
-    Serial.print("deltat=");
-    Serial.println((millis() - startTime) / 1000.0);
-    return Kp * (setpt - input) + Ki * integral;
-}
-void pi_control(float setpt, float interval)
-{
-    analogWrite(dig45, 90);
-    delay(200);
-    analogWrite(dig46, 90);
-    analogWrite(dig45, 40);
-    delay(500);
-    int count = 1;
-    double input = 0;
-    while (digitalRead(dig22) != LOW)
-    {
+        start_time = millis();
         if (count == 1)
         {
-            input = outputCalculator(setpt, interval, 40);
-            analogWrite(dig45, input);
+            analogWrite(dig46, 90);
+            analogWrite(dig45, 90);
+            delay(100);
+            analogWrite(dig45, 40);
+            delay(500);
+            double integral = 0;
+            double et = 0;
+            count = count + 1;
+            Serial.println("still here");
         }
         else
         {
-            input = outputCalculator(setpt, interval, input);
-            analogWrite(dig45, input);
+            delay(30);
+            double sumR = 0;
+            double sumL = 0;
+            for (int i = 0; i < 5; i++)
+            {
+                sumR = sumR + pulseIn(dig19, LOW) * 2;
+                sumL = sumL + pulseIn(dig18, LOW) * 2;
+            }
+            double rightPeriod = (sumR) / 5;
+            double leftPeriod = (sumL) / 5;
+            rightRPM = (1 / (rightPeriod * 20)) * conversion;
+            leftRPM = (1 / (leftPeriod * 20)) * conversion;
+            Serial.print("Rp=");
+            Serial.print(rightPeriod);
+            Serial.print("Lp=");
+            Serial.println(leftPeriod);
+            Serial.print("RS=");
+            Serial.print(rightRPM);
+            Serial.print("LS=");
+            Serial.println(leftRPM);
+            count = count + 1;
         }
+        while (millis() - start_time < 300)
+        {
+            delay(1);
+        }
+        Serial.print("deltat=");
+        deltat = double(millis() - start_time) / 1000;
+        Serial.println(deltat);
+        //et = (rightRPM - leftRPM) - setpt;
+        et = (leftRPM - setpt);
+        Serial.print("error=");
+        Serial.println(et);
+        Serial.print("integral=");
+        integral = et*deltat;
+        Serial.println(integral);
+        output = Kp * et + Ki * integral;
+        //maxRPM = (rightRPM/9)*10;
+        //output = output/maxRPM;
+        Serial.print("Proportional Term=");
+        Serial.print(Kp*et);
+        Serial.print(", Integral Term=");
+        Serial.print(Ki*integral);
+        Serial.print(", Controller Output=");
+        //output = output + new_output;
+        Serial.println(output);
+        if (output < 40)
+        {
+            output = 40;
+        }
+        else if (output > 100)
+        {
 
-        count++;
+            output = 100;
+        }
+        analogWrite(dig45, output);
+        Serial.print("output to motor=");
+        Serial.println(output);
+        delay(500);
     }
-    //analogWrite(dig46,0);
-    //analogWrite(dig45,0);
 }
 
 //
@@ -401,22 +407,6 @@ void PlotHeader()
     PlotBody(0, 0, 0, 1, 0, 1, false, true);
 }
 
-void option3(double time, double speed)
-{
-    PlotHeader();
-    for(int i = 20; i > 0; i + 20)
-    {
-        int xmin3 = 0;
-        int xmax3 = 20;
-        while (speed <= i)
-        {
-            PlotBody(time, speed, xmin3, xmax3, 0, 400, true, false);
-        }
-        xmin3 = xmin3 + 20;
-        xmax3 = xmax3 + 20;
-    }
-}
-
 void setup()
 {
     Serial.begin(115200);
@@ -462,18 +452,36 @@ void loop()
         option1();
         delay(10000);
     }
+
     else if (last_key_processed == KEY_2)
     {
         ClearScreen();
         last_key_processed = KEY_NONE;
-        for (int i = 0; i <= 5; i++)
+        float temp;
+        float humid;
+        while (int i = 0)
         {
-            option2_screen(i, i + 1);
-            delay(500);
+            if (digitalRead(dig22) != HIGH)
+            {
+                ReadAndDisplayData();
+            }
+            else if (last_key_processed == KEY_RETURN)
+            {
+                ClearScreen();
+                ShowMainMenu(SC_MAIN, ' ', ' ');
+                i = 1;
+            }
+            else if (digitalRead(dig22) == HIGH)
+            {
+                i = 1;
+            }
+            delay(100);
         }
     }
+
     else if (last_key_processed == KEY_3)
     {
+        ClearScreen();
         last_key_processed = KEY_NONE;
         pi_control(0, 0.2); //arg1 float: set point in rpm difference between mototrs
         //arg 2 float: integraion constant
