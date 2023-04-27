@@ -1,4 +1,3 @@
-
 #include "lcdhelper.h"
 #include "irhelper.h"
 #include <Servo.h>
@@ -24,7 +23,7 @@ const int dig32 = 32; //signal pin to TILT servo
 const int dig45 = 45; //gate on MOSFET left motor
 const int dig46 = 46; //gate on MOSFET right motor
 unsigned long int last_key_processed = KEY_NONE;
-const double Ki= 0.307;
+const double Ki= .307;
 const double Kp= 0.2556;
 const double Ku= 0.8667;
 const double Tu= 0.468;
@@ -56,6 +55,79 @@ void ShowMainMenu(screen val, char optionstate, char keypressed)
     sprintf(text, "3. PID Control");
     oLCD.print(text, 15, 60);
 }
+//
+// Routine to Plot data on LCD
+//
+void PlotBody(double x=0, double y=0, double xmin=0, double xmax=0, double ymin=0, double ymax=0, bool reset=true, bool resetstatic=false)
+{
+    static double lx;
+    static double ly;
+
+    if (resetstatic == true){
+        lx=x;
+        ly=y;
+    }
+    else
+    {
+        // Adjust upper and lower bounds if they are equal
+        if (abs(xmax-xmin) < 0.001){
+            xmin = 0.5*xmin;
+            xmax = 1.5*xmin;
+        }
+        // Adjust upper and lower bounds if they are equal
+        if (abs(ymax-ymin) < 0.001){
+            ymin = 0.5*ymin;
+            ymax = 1.5*ymin;
+        }
+        // Get screem coordinates.
+        int xLCD = oLCD.getDisplayXSize();
+        int yLCD = oLCD.getDisplayYSize();
+        double xLCDrange = xLCD - 20;
+        double yLCDrange = yLCD - 30;
+        if (reset == true){
+            oLCD.setColor(VGA_PURPLE);
+            oLCD.fillRect(16, 16, xLCD - 6, yLCD - 16);
+        }
+        oLCD.setColor(VGA_WHITE);
+        oLCD.setBrightness(0);
+        
+        // Calculate the x and y range of data.
+        double xrange = xmax - xmin;
+        double yrange = ymax - ymin;
+        //Plot line between point and prior point
+        oLCD.drawLine(((lx-xmin)/xrange)*(xLCDrange)+15,((ymax-ly)/yrange)*(yLCDrange)+15,
+                        ((x-xmin)/xrange)*(xLCDrange)+15,((ymax-y)/yrange)*(yLCDrange)+15);
+        // Plot point at current location
+        oLCD.drawPixel(((x-xmin)/xrange)*(xLCDrange)+15,((ymax-y)/yrange)*(yLCDrange)+15);
+        lx = x;
+        ly = y;  
+    }
+}
+//
+// Routine to Plot data on LCD
+//
+void PlotHeader()
+{
+    oLCD.InitLCD(LANDSCAPE);
+    oLCD.clrScr();
+    oLCD.setBackColor(VGA_PURPLE);
+    oLCD.fillScr(VGA_PURPLE);
+    oLCD.setFont(SmallFont);
+    oLCD.print(F("MOTOR CONTROL"),CENTER,2);
+    oLCD.print(F("time (s)"),CENTER,115);
+    oLCD.print(F("speed (rpm)"),0,115, 270);
+    // Get screem coordinates.
+    int xLCD = oLCD.getDisplayXSize();
+    int yLCD = oLCD.getDisplayYSize();
+    double xLCDrange = xLCD - 20;
+    double yLCDrange = yLCD - 30;
+    //  Draw rectangular border to screen.
+    oLCD.drawRoundRect(15, 15, xLCD - 5, yLCD - 15);
+    oLCD.setColor(VGA_WHITE);
+    oLCD.setBrightness(0);
+    PlotBody(0, 0, 0, 1, 0, 1, false, true);
+}
+
 void option1_screen_text(int a, int d)
 {
     oLCD.setColor(VGA_WHITE);
@@ -238,6 +310,10 @@ void option1()
 // Insert step 9 here
 void pi_control(int setpt, int interval)
 {
+    PlotHeader();
+    double xmin = 0;
+    double xmax = 20;
+    int axis_scale = 1;
     int output =0;
     int new_output = 0;
     int count =1;
@@ -259,8 +335,6 @@ void pi_control(int setpt, int interval)
             delay(100);
             analogWrite(dig45,40);
             delay(500);
-            double integral = 0;
-            double et = 0;
             count = count+1;
             Serial.println("still here");
         }
@@ -294,16 +368,16 @@ void pi_control(int setpt, int interval)
             delay(1);
         }
         Serial.print("deltat=");
-        deltat = double(millis()-start_time)/1000;
+        deltat = (double(millis()-start_time)/1000);
         Serial.println(deltat);
         //et = (rightRPM-leftRPM)-setpt;
-        et = (leftRPM-setpt);
+        et = setpt-(leftRPM-rightRPM);
         Serial.print("error=");
         Serial.println(et);
         Serial.print("integral=");
         integral = et*deltat;
         Serial.println(integral);
-        output = Kp*et+Ki*integral;
+        new_output = (Kp*et)+(Ki*integral);
         //maxRPM = (rightRPM/9)*10;
         //output = output/maxRPM;
         Serial.print("Proportional Term=");
@@ -311,7 +385,7 @@ void pi_control(int setpt, int interval)
         Serial.print(", Integral Term=");
         Serial.print(Ki*integral);
         Serial.print(", Controller Output=");
-        //output = output + new_output;
+        output = output + new_output;
         Serial.println(output);
         if(output<40)
         {
@@ -321,10 +395,11 @@ void pi_control(int setpt, int interval)
         {
             output = 100;
         }
-        analogWrite(dig45,output);
+        analogWrite(dig45,int(output));
         Serial.print("output to motor=");
         Serial.println(output);
-        delay(500);
+        axis_scale = ((millis() - start_time)/20000);
+        PlotBody(double(deltat*count), leftRPM, axis_scale*20, (axis_scale+1)*20, 0, 400, true, false);
     }
 }
 
