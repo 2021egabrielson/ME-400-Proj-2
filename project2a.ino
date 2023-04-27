@@ -325,6 +325,8 @@ void pi_control(int setpt, int interval)
     double integral = 0;
     double deltat = 0;
     double maxRPM = 0;
+    double init_time = millis();
+    double current_time = 0;
     while(analogRead(dig22) != LOW)
     {   
         start_time = millis();
@@ -398,9 +400,19 @@ void pi_control(int setpt, int interval)
         analogWrite(dig45,int(output));
         Serial.print("output to motor=");
         Serial.println(output);
-        axis_scale = ((millis() - start_time)/20000);
-        PlotBody(double(deltat*count), leftRPM, axis_scale*20, (axis_scale+1)*20, 0, 400, true, false);
+        current_time = (double (millis() - init_time));
+        axis_scale = (double((millis() - init_time))/20000);
+        Serial.print("axis_scale=");
+        Serial.println(axis_scale);
+        new double time[];
+        new double rpm[];
+        time[i] = current_time;
+        PlotBody((millis()-init_time)/1000, leftRPM, 0, (axis_scale+1)*20, 0, 400, false, false);
+    
+        
     }
+    analogWrite(dig46,0);
+    analogWrite(dig45,0);
 }
 
 void setup()
