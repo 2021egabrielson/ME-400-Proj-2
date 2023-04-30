@@ -160,18 +160,24 @@ void draw_radar()
     
 }
 
-
-
-void option2_screen(float temp, float humid)
-{
-    char text[20];
-    sprintf(text, "TEMPERATURE (C):");
-    oLCD.print(text, CENTER, 15);
-    oLCD.print((String)temp, CENTER, 30);
-    sprintf(text, "HUMIDITY (%%)");
-    oLCD.print(text, CENTER, 45);
-    oLCD.print((String)humid, CENTER, 60);
+void Option2(){
+    while(digitalRead(dig22) == HIGH)
+    {
+        ReadAndDisplayData();
+        if(last_key_processed == KEY_RETURN){
+            ClearScreen();
+            ShowMainMenu(SC_MAIN, ' ', ' ');
+            break;
+        }
+        if(digitalRead(dig22) == LOW)
+        {
+            ClearScreen();
+            ShowMainMenu(SC_MAIN, ' ', ' ');
+            break;
+        }
+    }
 }
+    
 
 bool ReadAndDisplayData()
 {
@@ -199,6 +205,19 @@ bool ReadAndDisplayData()
     {
         b[i] = Wire.read();
     }
+    
+    float temp = (b[5] + 256 * b[4])/10.0;
+    float humid (b[3] + 256 * b[2])/10.0;
+    
+    char text[20];
+    sprintf(text, "TEMPERATURE (C):");
+    oLCD.print(text, CENTER, 15);
+    oLCD.printNumF(temp, 1, CENTER, 30);
+    sprintf(text, "HUMIDITY (%%)");
+    oLCD.print(text, CENTER, 45);
+    oLCD.printNumF(humid, 1, CENTER, 60);
+    delay(200);
+    
 }
 
 void InitializePWM()
@@ -466,11 +485,7 @@ void loop()
         {
             ClearScreen();
             last_key_processed = KEY_NONE;
-            for(int i = 0;i<=5;i++)
-            {
-                option2_screen(i,i+1);
-                delay(500);
-            }
+            Option2();
             
         }
     else if (last_key_processed == KEY_3)
