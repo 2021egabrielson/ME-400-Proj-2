@@ -86,17 +86,24 @@ void draw_radar()
     oLCD.drawCircle(width / 2, height, r / 2);
 }
 
-void option2_screen(float temp, float humid)
-{
-    char text[20];
-    sprintf(text, "TEMPERATURE (C):");
-    oLCD.print(text, CENTER, 15);
-    oLCD.print((String)temp, CENTER, 30);
-    sprintf(text, "HUMIDITY (%)");
-    oLCD.print(text, CENTER, 45);
-    oLCD.print((String)humid, CENTER, 60);
+void Option2(){
+     while(digitalRead(dig22) == HIGH)
+    {
+        ReadAndDisplayData();
+        if(last_key_processed == KEY_RETURN){
+            ClearScreen();
+            ShowMainMenu(SC_MAIN, ' ', ' ');
+            break;
+        }
+        if(digitalRead(dig22) == LOW)
+        {
+            ClearScreen();
+            ShowMainMenu(SC_MAIN, ' ', ' ');
+            break;
+        }
+    }
 }
-
+    
 bool ReadAndDisplayData()
 {
     //Start communication with sensor and then end it to
@@ -133,9 +140,18 @@ bool ReadAndDisplayData()
         arr[i] = Wire.read();
     }
 
-    int temp = (arr[4]+arr[5])/10;
+    float temp = (arr[5] + 256 * arr[4])/10.0;
 
-    int humid = (arr[2]+arr[3])/10;
+    float humid = (arr[3] + 256 * arr[2])/10.0;
+    
+    char text[20];
+    sprintf(text, "TEMPERATURE (C):");
+    oLCD.print(text, CENTER, 15);
+    oLCD.printNumF(temp, 1, CENTER, 30);
+    sprintf(text, "HUMIDITY (%%)");
+    oLCD.print(text, CENTER, 45);
+    oLCD.printNumF(humid, 1, CENTER, 60);
+    delay(200);
 }
 
 void InitializePWM()
@@ -450,11 +466,7 @@ void loop()
     {
         ClearScreen();
         last_key_processed = KEY_NONE;
-        for (int i = 0; i <= 5; i++)
-        {
-            option2_screen(i, i + 1);
-            delay(500);
-        }
+        Option2();
     }
     else if (last_key_processed == KEY_3)
     {
