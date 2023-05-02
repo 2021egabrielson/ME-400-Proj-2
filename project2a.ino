@@ -2,7 +2,7 @@
 #include "irhelper.h"
 #include <Servo.h>
 #include <Wire.h>
-//for a .3 interval: kp=.39,tu=.468, Ki=1 
+//for a .3 interval: kp=.39,tu=.468, Ki=1
 
 //create 2 servo objects
 Servo panServo;
@@ -23,10 +23,10 @@ const int dig32 = 32; //signal pin to TILT servo
 const int dig45 = 45; //gate on MOSFET left motor
 const int dig46 = 46; //gate on MOSFET right motor
 unsigned long int last_key_processed = KEY_NONE;
-const double Ki= .307;
-const double Kp= 0.2556;
-const double Ku= 0.8667;
-const double Tu= 0.468;
+const double Ki = .307;
+const double Kp = 0.2556;
+const double Ku = 0.8667;
+const double Tu = 0.468;
 //function to clear the screen
 void ClearScreen()
 {
@@ -58,49 +58,53 @@ void ShowMainMenu(screen val, char optionstate, char keypressed)
 //
 // Routine to Plot data on LCD
 //
-void PlotBody(double x=0, double y=0, double xmin=0, double xmax=0, double ymin=0, double ymax=0, bool reset=true, bool resetstatic=false)
+void PlotBody(double x = 0, double y = 0, double xmin = 0, double xmax = 0, double ymin = 0, double ymax = 0, bool reset = true, bool resetstatic = false)
 {
     static double lx;
     static double ly;
 
-    if (resetstatic == true){
-        lx=x;
-        ly=y;
+    if (resetstatic == true)
+    {
+        lx = x;
+        ly = y;
     }
     else
     {
         // Adjust upper and lower bounds if they are equal
-        if (abs(xmax-xmin) < 0.001){
-            xmin = 0.5*xmin;
-            xmax = 1.5*xmin;
+        if (abs(xmax - xmin) < 0.001)
+        {
+            xmin = 0.5 * xmin;
+            xmax = 1.5 * xmin;
         }
         // Adjust upper and lower bounds if they are equal
-        if (abs(ymax-ymin) < 0.001){
-            ymin = 0.5*ymin;
-            ymax = 1.5*ymin;
+        if (abs(ymax - ymin) < 0.001)
+        {
+            ymin = 0.5 * ymin;
+            ymax = 1.5 * ymin;
         }
         // Get screem coordinates.
         int xLCD = oLCD.getDisplayXSize();
         int yLCD = oLCD.getDisplayYSize();
         double xLCDrange = xLCD - 20;
         double yLCDrange = yLCD - 30;
-        if (reset == true){
+        if (reset == true)
+        {
             oLCD.setColor(VGA_PURPLE);
             oLCD.fillRect(16, 16, xLCD - 6, yLCD - 16);
         }
         oLCD.setColor(VGA_WHITE);
         oLCD.setBrightness(0);
-        
+
         // Calculate the x and y range of data.
         double xrange = xmax - xmin;
         double yrange = ymax - ymin;
         //Plot line between point and prior point
-        oLCD.drawLine(((lx-xmin)/xrange)*(xLCDrange)+15,((ymax-ly)/yrange)*(yLCDrange)+15,
-                        ((x-xmin)/xrange)*(xLCDrange)+15,((ymax-y)/yrange)*(yLCDrange)+15);
+        oLCD.drawLine(((lx - xmin) / xrange) * (xLCDrange) + 15, ((ymax - ly) / yrange) * (yLCDrange) + 15,
+                      ((x - xmin) / xrange) * (xLCDrange) + 15, ((ymax - y) / yrange) * (yLCDrange) + 15);
         // Plot point at current location
-        oLCD.drawPixel(((x-xmin)/xrange)*(xLCDrange)+15,((ymax-y)/yrange)*(yLCDrange)+15);
+        oLCD.drawPixel(((x - xmin) / xrange) * (xLCDrange) + 15, ((ymax - y) / yrange) * (yLCDrange) + 15);
         lx = x;
-        ly = y;  
+        ly = y;
     }
 }
 //
@@ -113,9 +117,9 @@ void PlotHeader()
     oLCD.setBackColor(VGA_PURPLE);
     oLCD.fillScr(VGA_PURPLE);
     oLCD.setFont(SmallFont);
-    oLCD.print(F("MOTOR CONTROL"),CENTER,2);
-    oLCD.print(F("time (s)"),CENTER,115);
-    oLCD.print(F("speed (rpm)"),0,115, 270);
+    oLCD.print(F("MOTOR CONTROL"), CENTER, 2);
+    oLCD.print(F("time (s)"), CENTER, 115);
+    oLCD.print(F("speed (rpm)"), 0, 115, 270);
     // Get screem coordinates.
     int xLCD = oLCD.getDisplayXSize();
     int yLCD = oLCD.getDisplayYSize();
@@ -132,32 +136,43 @@ void option1_screen_text(int a, int d)
 {
     oLCD.setColor(VGA_WHITE);
     char text[20];
-    oLCD.print("  ANGLE "+(String)a+" DEGREES  ", CENTER, 15);
-    oLCD.print("  DISTANCE "+(String)d+" CM  ", CENTER, 30);
+    oLCD.print("  ANGLE " + (String)a + " DEGREES  ", CENTER, 15);
+    oLCD.print("  DISTANCE " + (String)d + " CM  ", CENTER, 30);
 }
 void draw_radar()
-{   
+{
     //0,0 it top left corner
     oLCD.setColor(VGA_WHITE);
     oLCD.fillScr(VGA_PURPLE);
     int width = oLCD.getDisplayXSize();
     int height = oLCD.getDisplayYSize();
-    int r = width/2-4;
+    int r = width / 2 - 4;
 
     //middle line
-    oLCD.drawLine(width/2,height, width/2,height-(width/2)+3);
+    oLCD.drawLine(width / 2, height, width / 2, height - (width / 2) + 3);
     //150 deg from x+
-    oLCD.drawLine(width/2,height, (width/2) - (r*cos((30*PI)/180)),height-(r*sin((30*PI)/180)-1));
+    oLCD.drawLine(width / 2, height, (width / 2) - (r * cos((30 * PI) / 180)), height - (r * sin((30 * PI) / 180) - 1));
     //120 deg from x+
-    oLCD.drawLine(width/2,height, (width/2) - (r*cos((60*PI)/180)),height-(r*sin((60*PI)/180)-1));
+    oLCD.drawLine(width / 2, height, (width / 2) - (r * cos((60 * PI) / 180)), height - (r * sin((60 * PI) / 180) - 1));
     //60 deg from x+
-    oLCD.drawLine(width/2,height, (width/2) + (r*cos((60*PI)/180)),height-(r*sin((60*PI)/180)-1));
+    oLCD.drawLine(width / 2, height, (width / 2) + (r * cos((60 * PI) / 180)), height - (r * sin((60 * PI) / 180) - 1));
     //30 deg from x+
-    oLCD.drawLine(width/2,height, (width/2) + (r*cos((30*PI)/180)),height-(r*sin((30*PI)/180)-1));
-    
-    oLCD.drawCircle(width/2,height-1,r);
-    oLCD.drawCircle(width/2,height,r/2);
-    
+
+    oLCD.drawLine(width / 2, height, (width / 2) + (r * cos((30 * PI) / 180)), height - (r * sin((30 * PI) / 180) - 1));
+
+    oLCD.drawCircle(width / 2, height - 1, r);
+    oLCD.drawCircle(width / 2, height, r / 2);
+}
+
+void option2_screen(float temp, float humid)
+{
+    char text[20];
+    sprintf(text, "TEMPERATURE (C):");
+    oLCD.print(text, CENTER, 15);
+    oLCD.print((String)temp, CENTER, 30);
+    sprintf(text, "HUMIDITY (%%)");
+    oLCD.print(text, CENTER, 45);
+    oLCD.print((String)humid, CENTER, 60);
 }
 
 void Option2(){
@@ -176,6 +191,7 @@ void Option2(){
             break;
         }
     }
+
 }
     
 
@@ -239,18 +255,18 @@ int calculateDistance(int tPin, int ePin)
     digitalWrite(tPin, HIGH);
     delayMicroseconds(10);
     digitalWrite(tPin, LOW);
-    double duration = pulseIn(ePin, HIGH); 
+    double duration = pulseIn(ePin, HIGH);
     // Reads the echoPin, returns the sound wave travel time in microseconds
     int distance = duration * 0.034 / 2;
-    if (distance>30)
+    if (distance > 30)
     {
-        distance =30;
+        distance = 30;
     }
     //Serial.print("distance: ");
     //Serial.println(distance);
     //Serial.print("duration: ");
     //Serial.println(duration);
-    
+
     return distance;
 }
 // function to draw sweep lines
@@ -258,9 +274,9 @@ void radarOutput(int i, int d)
 {
     int width = oLCD.getDisplayXSize();
     int height = oLCD.getDisplayYSize();
-    int r = width/2-4;
-    float l = (float(d)/30)*r;
-    if(i==30||i==60||i==90||i==120||i==150)
+    int r = width / 2 - 4;
+    float l = (float(d) / 30) * r;
+    if (i == 30 || i == 60 || i == 90 || i == 120 || i == 150)
     {
         oLCD.setColor(VGA_WHITE);
     }
@@ -268,44 +284,41 @@ void radarOutput(int i, int d)
     {
         oLCD.setColor(VGA_BLUE);
     }
-    float endx_blue = (width/2) + (l*cos((i*PI)/180)); //sets the end point of the blue line
-    float endy_blue = height-(l*sin((i*PI)/180)-1); //sets the end point of the blue line
-    float endx_red = (width/2) + (r*cos((i*PI)/180));
-    float endy_red = height-(r*sin((i*PI)/180)-1);
-    oLCD.drawLine(width/2,height, endx_blue, endy_blue);
+    float endx_blue = (width / 2) + (l * cos((i * PI) / 180)); //sets the end point of the blue line
+    float endy_blue = height - (l * sin((i * PI) / 180) - 1);  //sets the end point of the blue line
+    float endx_red = (width / 2) + (r * cos((i * PI) / 180));
+    float endy_red = height - (r * sin((i * PI) / 180) - 1);
+    oLCD.drawLine(width / 2, height, endx_blue, endy_blue);
     //Logic to keep the radar circles w/o redrawing them
     Serial.println(int(l));
-    if(int(l)!=r)
+    if (int(l) != r)
     {
-        if(i==30||i==60||i==90||i==120||i==150)
+        if (i == 30 || i == 60 || i == 90 || i == 120 || i == 150)
         {
             oLCD.setColor(VGA_WHITE);
         }
         else
         {
-            oLCD.setColor(VGA_RED);  
+            oLCD.setColor(VGA_RED);
         }
-        oLCD.drawLine(endx_blue,endy_blue, endx_red, endy_red);
+        oLCD.drawLine(endx_blue, endy_blue, endx_red, endy_red);
     }
-    
+
     oLCD.setColor(VGA_WHITE);
-    oLCD.drawPixel((width/2) + int((r/2*cos((i*PI)/180))),height-((float(r/2)*sin((i*PI)/180)-1)));
-    
-
-
+    oLCD.drawPixel((width / 2) + int((r / 2 * cos((i * PI) / 180))), height - ((float(r / 2) * sin((i * PI) / 180) - 1)));
 }
 // Function to rotate sensor and read distance to print on LCD
 void option1()
-{   
+{
     int distance = calculateDistance(dig29, dig28);
     // rotates the servo motor from 15 to 165 degrees
     for (int i = 15; i <= 165; i++)
     {
         panServo.write(i);
         delay(30);
-        distance = calculateDistance(dig29,dig28);
-        option1_screen_text(i,distance);
-        radarOutput(i,distance);
+        distance = calculateDistance(dig29, dig28);
+        option1_screen_text(i, distance);
+        radarOutput(i, distance);
         //implement radar display here
     }
     // Repeats the previous lines from 165 to 15 degrees
@@ -318,9 +331,9 @@ void option1()
     {
         panServo.write(i);
         delay(30);
-        distance = calculateDistance(dig29,dig28);
-        option1_screen_text(i,distance);
-        radarOutput(i,distance);
+        distance = calculateDistance(dig29, dig28);
+        option1_screen_text(i, distance);
+        radarOutput(i, distance);
     }
     ClearScreen();
     ShowMainMenu(SC_MAIN, ' ', ' ');
@@ -332,11 +345,11 @@ void pi_control(int setpt, int interval)
     PlotHeader();
     double xmin = 0;
     double xmax = 20;
-    int axis_scale = 1;
-    int output =0;
+    int axis_scale = 0;
+    int output = 0;
     int new_output = 0;
-    int count =1;
-    double conversion = 1000000*60;
+    int count = 1;
+    double conversion = 1000000 * 60;
     unsigned long int start_time = 0;
     double et = 0;
     double rightRPM = 0;
@@ -346,17 +359,17 @@ void pi_control(int setpt, int interval)
     double maxRPM = 0;
     double init_time = millis();
     double current_time = 0;
-    while(analogRead(dig22) != LOW)
-    {   
+    while (analogRead(dig22) != LOW)
+    {
         start_time = millis();
-        if(count == 1)
+        if (count == 1)
         {
             analogWrite(dig46, 90);
-            analogWrite(dig45,90);
+            analogWrite(dig45, 90);
             delay(100);
-            analogWrite(dig45,40);
+            analogWrite(dig45, 40);
             delay(500);
-            count = count+1;
+            count = count + 1;
             Serial.println("still here");
         }
         else
@@ -364,15 +377,15 @@ void pi_control(int setpt, int interval)
             delay(30);
             double sumR = 0;
             double sumL = 0;
-            for(int i = 0; i<5;i++)
+            for (int i = 0; i < 5; i++)
             {
-                sumR = sumR + pulseIn(dig19,LOW)*2;
-                sumL = sumL + pulseIn(dig18,LOW)*2;
+                sumR = sumR + pulseIn(dig19, LOW) * 2;
+                sumL = sumL + pulseIn(dig18, LOW) * 2;
             }
-            double rightPeriod = (sumR)/5;
-            double leftPeriod = (sumL)/5;
-            rightRPM = (1/(rightPeriod*20))*conversion;
-            leftRPM = (1/(leftPeriod*20))*conversion;
+            double rightPeriod = (sumR) / 5;
+            double leftPeriod = (sumL) / 5;
+            rightRPM = (1 / (rightPeriod * 20)) * conversion;
+            leftRPM = (1 / (leftPeriod * 20)) * conversion;
             Serial.print("Rp=");
             Serial.print(rightPeriod);
             Serial.print("Lp=");
@@ -381,57 +394,62 @@ void pi_control(int setpt, int interval)
             Serial.print(rightRPM);
             Serial.print("LS=");
             Serial.println(leftRPM);
-            count = count +1;
-            
+            count = count + 1;
         }
-        while(millis()-start_time < 300)
+        while (millis() - start_time < 300)
         {
             delay(1);
         }
         Serial.print("deltat=");
-        deltat = (double(millis()-start_time)/1000);
+        deltat = (double(millis() - start_time) / 1000);
         Serial.println(deltat);
         //et = (rightRPM-leftRPM)-setpt;
-        et = setpt-(leftRPM-rightRPM);
+        et = setpt - (leftRPM - rightRPM);
         Serial.print("error=");
         Serial.println(et);
         Serial.print("integral=");
-        integral = et*deltat;
+        integral = et * deltat;
         Serial.println(integral);
-        new_output = (Kp*et)+(Ki*integral);
+        new_output = (Kp * et) + (Ki * integral);
         //maxRPM = (rightRPM/9)*10;
         //output = output/maxRPM;
         Serial.print("Proportional Term=");
-        Serial.print(Kp*et);
+        Serial.print(Kp * et);
         Serial.print(", Integral Term=");
-        Serial.print(Ki*integral);
+        Serial.print(Ki * integral);
         Serial.print(", Controller Output=");
         output = output + new_output;
         Serial.println(output);
-        if(output<40)
+        if (output < 40)
         {
             output = 40;
         }
-        else if(output>100)
+        else if (output > 100)
         {
             output = 100;
         }
-        analogWrite(dig45,int(output));
+        analogWrite(dig45, int(output));
         Serial.print("output to motor=");
         Serial.println(output);
-        current_time = (double (millis() - init_time));
-        axis_scale = (double((millis() - init_time))/20000);
+        current_time = (double(millis() - init_time));
+        
+
+        if ((current_time / 1000) >= (axis_scale + 1) * 20)
+        {
+            PlotBody((axis_scale + 1) * 20, leftRPM, axis_scale * 20, (axis_scale + 1) * 20, 0, 400, true, false);
+            axis_scale = int(double((millis() - init_time)) / 20000);
+            Serial.println("im in here HELP");
+        }
+        else
+        {
+            PlotBody(current_time / 1000, leftRPM, axis_scale * 20, (axis_scale + 1) * 20, 0, 400, false, false);
+        }
+        Serial.print("resetter=");
         Serial.print("axis_scale=");
         Serial.println(axis_scale);
-        new double time[];
-        new double rpm[];
-        time[i] = current_time;
-        PlotBody((millis()-init_time)/1000, leftRPM, 0, (axis_scale+1)*20, 0, 400, false, false);
-    
-        
     }
-    analogWrite(dig46,0);
-    analogWrite(dig45,0);
+    analogWrite(dig46, 0);
+    analogWrite(dig45, 0);
 }
 
 void setup()
@@ -446,22 +464,20 @@ void setup()
     tiltServo.write(25);
     //joins the I2C bus
     Wire.begin();
-    
+
     //setting output pins
     pinMode(dig29, OUTPUT);
     pinMode(dig45, OUTPUT);
     pinMode(dig46, OUTPUT);
     //setting input pins
     pinMode(dig28, INPUT);
-    pinMode(dig31, OUTPUT);//<---these need to be out put IDK why instructions say input
-    pinMode(dig32, OUTPUT);//<---
+    pinMode(dig31, OUTPUT); //<---these need to be out put IDK why instructions say input
+    pinMode(dig32, OUTPUT); //<---
     //setting pulled high pins
     pinMode(dig18, INPUT_PULLUP);
     pinMode(dig19, INPUT_PULLUP);
     pinMode(dig22, INPUT_PULLUP);
-    
-    
-    
+
     oLCD.LCDInitialize(LANDSCAPE);
     oIR.IRInitialize();
     ShowMainMenu(SC_MAIN, ' ', ' ');
@@ -481,18 +497,23 @@ void loop()
         option1();
         delay(10000);
     }
-    else if(last_key_processed == KEY_2)
+    else if (last_key_processed == KEY_2)
+    {
+        ClearScreen();
+        last_key_processed = KEY_NONE;
+        for (int i = 0; i <= 5; i++)
         {
+
             ClearScreen();
             last_key_processed = KEY_NONE;
             Option2();
             
         }
+    }
     else if (last_key_processed == KEY_3)
-        {
-            last_key_processed = KEY_NONE;
-            pi_control(0,0.2);//arg1 float: set point in rpm difference between mototrs
-            //arg 2 float: integraion constant
-
-        }
+    {
+        last_key_processed = KEY_NONE;
+        pi_control(0, 0.2); //arg1 float: set point in rpm difference between mototrs
+        //arg 2 float: integraion constant
+    }
 }
