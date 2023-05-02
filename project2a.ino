@@ -23,7 +23,7 @@ const int dig32 = 32; //signal pin to TILT servo
 const int dig45 = 45; //gate on MOSFET left motor
 const int dig46 = 46; //gate on MOSFET right motor
 unsigned long int last_key_processed = KEY_NONE;
-const double Ki = 0.307;
+const double Ki = .307;
 const double Kp = 0.2556;
 const double Ku = 0.8667;
 const double Tu = 0.468;
@@ -36,13 +36,13 @@ void ClearScreen()
     int y = oLCD.getDisplayYSize();
     oLCD.drawRoundRect(5, 5, x - 5, y - 5);
 }
-//function to make purple screen
 void BlankScreen()
 {
     oLCD.fillScr(VGA_PURPLE);
 }
 //function to bring up the main menu
 void ShowMainMenu(screen val, char optionstate, char keypressed)
+
 {
     char text[20];
     //ClearScreen();
@@ -55,6 +55,83 @@ void ShowMainMenu(screen val, char optionstate, char keypressed)
     sprintf(text, "3. PID Control");
     oLCD.print(text, 15, 60);
 }
+//
+// Routine to Plot data on LCD
+//
+void PlotBody(double x = 0, double y = 0, double xmin = 0, double xmax = 0, double ymin = 0, double ymax = 0, bool reset = true, bool resetstatic = false)
+{
+    static double lx;
+    static double ly;
+
+    if (resetstatic == true)
+    {
+        lx = x;
+        ly = y;
+    }
+    else
+    {
+        // Adjust upper and lower bounds if they are equal
+        if (abs(xmax - xmin) < 0.001)
+        {
+            xmin = 0.5 * xmin;
+            xmax = 1.5 * xmin;
+        }
+        // Adjust upper and lower bounds if they are equal
+        if (abs(ymax - ymin) < 0.001)
+        {
+            ymin = 0.5 * ymin;
+            ymax = 1.5 * ymin;
+        }
+        // Get screem coordinates.
+        int xLCD = oLCD.getDisplayXSize();
+        int yLCD = oLCD.getDisplayYSize();
+        double xLCDrange = xLCD - 20;
+        double yLCDrange = yLCD - 30;
+        if (reset == true)
+        {
+            oLCD.setColor(VGA_PURPLE);
+            oLCD.fillRect(16, 16, xLCD - 6, yLCD - 16);
+        }
+        oLCD.setColor(VGA_WHITE);
+        oLCD.setBrightness(0);
+
+        // Calculate the x and y range of data.
+        double xrange = xmax - xmin;
+        double yrange = ymax - ymin;
+        //Plot line between point and prior point
+        oLCD.drawLine(((lx - xmin) / xrange) * (xLCDrange) + 15, ((ymax - ly) / yrange) * (yLCDrange) + 15,
+                      ((x - xmin) / xrange) * (xLCDrange) + 15, ((ymax - y) / yrange) * (yLCDrange) + 15);
+        // Plot point at current location
+        oLCD.drawPixel(((x - xmin) / xrange) * (xLCDrange) + 15, ((ymax - y) / yrange) * (yLCDrange) + 15);
+        lx = x;
+        ly = y;
+    }
+}
+//
+// Routine to Plot data on LCD
+//
+void PlotHeader()
+{
+    oLCD.InitLCD(LANDSCAPE);
+    oLCD.clrScr();
+    oLCD.setBackColor(VGA_PURPLE);
+    oLCD.fillScr(VGA_PURPLE);
+    oLCD.setFont(SmallFont);
+    oLCD.print(F("MOTOR CONTROL"), CENTER, 2);
+    oLCD.print(F("time (s)"), CENTER, 115);
+    oLCD.print(F("speed (rpm)"), 0, 115, 270);
+    // Get screem coordinates.
+    int xLCD = oLCD.getDisplayXSize();
+    int yLCD = oLCD.getDisplayYSize();
+    double xLCDrange = xLCD - 20;
+    double yLCDrange = yLCD - 30;
+    //  Draw rectangular border to screen.
+    oLCD.drawRoundRect(15, 15, xLCD - 5, yLCD - 15);
+    oLCD.setColor(VGA_WHITE);
+    oLCD.setBrightness(0);
+    PlotBody(0, 0, 0, 1, 0, 1, false, true);
+}
+
 void option1_screen_text(int a, int d)
 {
     oLCD.setColor(VGA_WHITE);
@@ -80,6 +157,7 @@ void draw_radar()
     //60 deg from x+
     oLCD.drawLine(width / 2, height, (width / 2) + (r * cos((60 * PI) / 180)), height - (r * sin((60 * PI) / 180) - 1));
     //30 deg from x+
+
     oLCD.drawLine(width / 2, height, (width / 2) + (r * cos((30 * PI) / 180)), height - (r * sin((30 * PI) / 180) - 1));
 
     oLCD.drawCircle(width / 2, height - 1, r);
@@ -91,11 +169,31 @@ void option2_screen(float temp, float humid)
     char text[20];
     sprintf(text, "TEMPERATURE (C):");
     oLCD.print(text, CENTER, 15);
-    oLCD.printNumF(temp, 1, CENTER, 30);
-    sprintf(text, "HUMIDITY (%)");
+    oLCD.print((String)temp, CENTER, 30);
+    sprintf(text, "HUMIDITY (%%)");
     oLCD.print(text, CENTER, 45);
-    oLCD.printNumF(humid, 1, CENTER, 60);
+    oLCD.print((String)humid, CENTER, 60);
 }
+
+void Option2(){
+    while(digitalRead(dig22) == HIGH)
+    {
+        ReadAndDisplayData();
+        if(last_key_processed == KEY_RETURN){
+            ClearScreen();
+            ShowMainMenu(SC_MAIN, ' ', ' ');
+            break;
+        }
+        if(digitalRead(dig22) == LOW)
+        {
+            ClearScreen();
+            ShowMainMenu(SC_MAIN, ' ', ' ');
+            break;
+        }
+    }
+
+}
+    
 
 bool ReadAndDisplayData()
 {
@@ -112,33 +210,30 @@ bool ReadAndDisplayData()
 
     //End the transmission and delay 1500 microsecond
     Wire.endTransmission(true);
-
-    if (Wire.endTransmission(true) != 0)
-    {
-        return false;
-    }
-
-    else
-    {
-        return true;
-    }
     delay(1500);
 
     //Request 8 bytes of data from sensor over I2C bus
     Wire.requestFrom(0x5C, 8);
 
     //Creates bytes array, populates using Wire.read
-    byte arr[8];
+    byte b[8];
     for (int i = 0; i < 8; i++)
     {
-        arr[i] = Wire.read();
+        b[i] = Wire.read();
     }
-
-    float temp = ((int)arr[4] * pow(2, 8) + (int)arr[5]) / 10.0;
-
-    float humid = ((int)arr[2] * pow(2, 8) + (int)arr[3]) / 10.0;
-
-    option2_screen(temp, humid);
+    
+    float temp = (b[5] + 256 * b[4])/10.0;
+    float humid (b[3] + 256 * b[2])/10.0;
+    
+    char text[20];
+    sprintf(text, "TEMPERATURE (C):");
+    oLCD.print(text, CENTER, 15);
+    oLCD.printNumF(temp, 1, CENTER, 30);
+    sprintf(text, "HUMIDITY (%%)");
+    oLCD.print(text, CENTER, 45);
+    oLCD.printNumF(humid, 1, CENTER, 60);
+    delay(200);
+    
 }
 
 void InitializePWM()
@@ -245,9 +340,12 @@ void option1()
 }
 
 // Insert step 9 here
-
 void pi_control(int setpt, int interval)
 {
+    PlotHeader();
+    double xmin = 0;
+    double xmax = 20;
+    int axis_scale = 0;
     int output = 0;
     int new_output = 0;
     int count = 1;
@@ -259,9 +357,15 @@ void pi_control(int setpt, int interval)
     double integral = 0;
     double deltat = 0;
     double maxRPM = 0;
-    while (analogRead(dig22) != LOW)
+    double init_time = millis();
+    double current_time = 0;
+    while (digitalRead(dig22) == HIGH)
     {
         start_time = millis();
+        if (digitalRead(dig22) == LOW)
+        {
+            break;
+        }
         if (count == 1)
         {
             analogWrite(dig46, 90);
@@ -269,8 +373,6 @@ void pi_control(int setpt, int interval)
             delay(100);
             analogWrite(dig45, 40);
             delay(500);
-            double integral = 0;
-            double et = 0;
             count = count + 1;
             Serial.println("still here");
         }
@@ -303,24 +405,24 @@ void pi_control(int setpt, int interval)
             delay(1);
         }
         Serial.print("deltat=");
-        deltat = double(millis() - start_time) / 1000;
+        deltat = (double(millis() - start_time) / 1000);
         Serial.println(deltat);
-        //et = (rightRPM - leftRPM) - setpt;
-        et = (leftRPM - setpt);
+        //et = (rightRPM-leftRPM)-setpt;
+        et = setpt - (leftRPM - rightRPM);
         Serial.print("error=");
         Serial.println(et);
         Serial.print("integral=");
-        integral = et*deltat;
+        integral = et * deltat;
         Serial.println(integral);
-        output = Kp * et + Ki * integral;
+        new_output = (Kp * et) + (Ki * integral);
         //maxRPM = (rightRPM/9)*10;
         //output = output/maxRPM;
         Serial.print("Proportional Term=");
-        Serial.print(Kp*et);
+        Serial.print(Kp * et);
         Serial.print(", Integral Term=");
-        Serial.print(Ki*integral);
+        Serial.print(Ki * integral);
         Serial.print(", Controller Output=");
-        //output = output + new_output;
+        output = output + new_output;
         Serial.println(output);
         if (output < 40)
         {
@@ -328,83 +430,30 @@ void pi_control(int setpt, int interval)
         }
         else if (output > 100)
         {
-
             output = 100;
         }
-        analogWrite(dig45, output);
+        analogWrite(dig45, int(output));
         Serial.print("output to motor=");
         Serial.println(output);
-        delay(500);
-    }
-}
+        current_time = (double(millis() - init_time));
+        
 
-//
-// Routine to Plot data on LCD
-//
-void PlotBody(double x = 0, double y = 0, double xmin = 0, double xmax = 0, double ymin = 0, double ymax = 0, bool reset = true, bool resetstatic = false)
-{
-    static double lx;
-    static double ly;
-    if (resetstatic == true)
-    {
-        lx = x;
-        ly = y;
-    }
-    else
-    {
-        // Adjust upper and lower bounds if they are equal
-        if (abs(xmax - xmin) < 0.001)
+        if ((current_time / 1000) >= (axis_scale + 1) * 20)
         {
-            xmin = 0.5 * xmin;
-            xmax = 1.5 * xmin;
+            PlotBody((axis_scale + 1) * 20, leftRPM, axis_scale * 20, (axis_scale + 1) * 20, 0, 400, true, false);
+            axis_scale = int(double((millis() - init_time)) / 20000);
+            Serial.println("im in here HELP");
         }
-        // Get screem coordinates.
-        int xLCD = oLCD.getDisplayXSize();
-        int yLCD = oLCD.getDisplayYSize();
-        double xLCDrange = xLCD - 20;
-        double yLCDrange = yLCD - 30;
-        if (reset == true)
+        else
         {
-            oLCD.setColor(VGA_PURPLE);
-            oLCD.fillRect(16, 16, xLCD - 6, yLCD - 16);
+            PlotBody(current_time / 1000, leftRPM, axis_scale * 20, (axis_scale + 1) * 20, 0, 400, false, false);
         }
-        oLCD.setColor(VGA_WHITE);
-        oLCD.setBrightness(0);
-        // Calculate the x and y range of data.
-        double xrange = xmax - xmin;
-        double yrange = ymax - ymin;
-        //Plot line between point and prior point
-        oLCD.drawLine(((lx - xmin) / xrange) * (xLCDrange) + 15, ((ymax - ly) / yrange) * (yLCDrange) + 15,
-                      ((x - xmin) / xrange) * (xLCDrange) + 15, ((ymax - y) / yrange) * (yLCDrange) + 15);
-        // Plot point at current location
-        oLCD.drawPixel(((x - xmin) / xrange) * (xLCDrange) + 15, ((ymax - y) / yrange) * (yLCDrange) + 15);
-        lx = x;
-        ly = y;
+        Serial.print("resetter=");
+        Serial.print("axis_scale=");
+        Serial.println(axis_scale);
     }
-}
-//
-// Routine to Plot data on LCD
-//
-void PlotHeader()
-{
-    oLCD.InitLCD(LANDSCAPE);
-    oLCD.clrScr();
-    oLCD.setBackColor(VGA_PURPLE);
-    oLCD.fillScr(VGA_PURPLE);
-    oLCD.setFont(SmallFont);
-    oLCD.print(F("MOTOR CONTROL"), CENTER, 2);
-    oLCD.print(F("time (s)"), CENTER, 115);
-    oLCD.print(F("speed (rpm)"), 0, 115, 270);
-    // Get screem coordinates.
-    int xLCD = oLCD.getDisplayXSize();
-    int yLCD = oLCD.getDisplayYSize();
-    double xLCDrange = xLCD - 20;
-    double yLCDrange = yLCD - 30;
-    // Draw rectangular border to screen.
-    oLCD.drawRoundRect(15, 15, xLCD - 5, yLCD - 15);
-    oLCD.setColor(VGA_WHITE);
-    oLCD.setBrightness(0);
-    PlotBody(0, 0, 0, 1, 0, 1, false, true);
+    analogWrite(dig46, 0);
+    analogWrite(dig45, 0);
 }
 
 void setup()
@@ -452,38 +501,28 @@ void loop()
         option1();
         delay(10000);
     }
-
     else if (last_key_processed == KEY_2)
     {
         ClearScreen();
         last_key_processed = KEY_NONE;
-        float temp;
-        float humid;
-        while (int i = 0)
+        for (int i = 0; i <= 5; i++)
         {
-            if (digitalRead(dig22) != HIGH)
-            {
-                ReadAndDisplayData();
-            }
-            else if (last_key_processed == KEY_RETURN)
-            {
-                ClearScreen();
-                ShowMainMenu(SC_MAIN, ' ', ' ');
-                i = 1;
-            }
-            else if (digitalRead(dig22) == HIGH)
-            {
-                i = 1;
-            }
-            delay(100);
+
+            ClearScreen();
+            last_key_processed = KEY_NONE;
+            Option2();
+            
         }
     }
-
     else if (last_key_processed == KEY_3)
     {
-        ClearScreen();
         last_key_processed = KEY_NONE;
         pi_control(0, 0.2); //arg1 float: set point in rpm difference between mototrs
         //arg 2 float: integraion constant
+        if (last_key_processed == KEY_RETURN)
+        {
+            ClearScreen();
+            ShowMainMenu(SC_MAIN, ' ', ' ');
+        }
     }
 }
