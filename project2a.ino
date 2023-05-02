@@ -1,3 +1,4 @@
+
 #include "lcdhelper.h"
 #include "irhelper.h"
 #include <Servo.h>
@@ -27,6 +28,11 @@ const double Ki = .307;
 const double Kp = 0.2556;
 const double Ku = 0.8667;
 const double Tu = 0.468;
+//function to convert duty cycle to output
+int duty(int duty_cycle)
+{
+    return ((255 * duty_cycle) / 100);
+} 
 //function to clear the screen
 void ClearScreen()
 {
@@ -179,12 +185,13 @@ void Option2(){
     while(digitalRead(dig22) == HIGH)
     {
         ReadAndDisplayData();
+        last_key_processed = oIR.GetKeyPressed();
         if(last_key_processed == KEY_RETURN){
             ClearScreen();
             ShowMainMenu(SC_MAIN, ' ', ' ');
             break;
         }
-        if(digitalRead(dig22) == LOW)
+        else if(digitalRead(dig22) == LOW)
         {
             ClearScreen();
             ShowMainMenu(SC_MAIN, ' ', ' ');
@@ -223,7 +230,7 @@ bool ReadAndDisplayData()
     }
     
     float temp = (b[5] + 256 * b[4])/10.0;
-    float humid (b[3] + 256 * b[2])/10.0;
+    float humid = (b[3] + 256 * b[2])/10.0;
     
     char text[20];
     sprintf(text, "TEMPERATURE (C):");
@@ -325,7 +332,6 @@ void option1()
     while (oIR.GetKeyPressed() != KEY_RETURN)
     {
         delay(10);
-        Serial.println("waiting");
     }
     for (int i = 165; i > 15; i--)
     {
@@ -342,6 +348,7 @@ void option1()
 // Insert step 9 here
 void pi_control(int setpt, int interval)
 {
+    last_key_processed = KEY_NONE;
     PlotHeader();
     double xmin = 0;
     double xmax = 20;
@@ -359,7 +366,9 @@ void pi_control(int setpt, int interval)
     double maxRPM = 0;
     double init_time = millis();
     double current_time = 0;
+
     while (digitalRead(dig22) == HIGH)
+
     {
         if (digitalRead(dig22) == LOW)
         {
@@ -370,13 +379,12 @@ void pi_control(int setpt, int interval)
         start_time = millis();
         if (count == 1)
         {
-            analogWrite(dig46, 90);
-            analogWrite(dig45, 90);
+            analogWrite(dig46, duty(90));
+            analogWrite(dig45, duty(90));
             delay(100);
-            analogWrite(dig45, 40);
+            analogWrite(dig45, duty(40));
             delay(500);
             count = count + 1;
-            Serial.println("still here");
         }
         else
         {
@@ -434,28 +442,37 @@ void pi_control(int setpt, int interval)
         {
             output = 100;
         }
-        analogWrite(dig45, int(output));
-        Serial.print("output to motor=");
-        Serial.println(output);
+        analogWrite(dig45, duty(int(output)));
         current_time = (double(millis() - init_time));
-        
+        if(leftRPM > 400)
+        {
+            leftRPM = 400;
+        }
 
         if ((current_time / 1000) >= (axis_scale + 1) * 20)
         {
             PlotBody((axis_scale + 1) * 20, leftRPM, axis_scale * 20, (axis_scale + 1) * 20, 0, 400, true, false);
             axis_scale = int(double((millis() - init_time)) / 20000);
-            Serial.println("im in here HELP");
         }
         else
         {
             PlotBody(current_time / 1000, leftRPM, axis_scale * 20, (axis_scale + 1) * 20, 0, 400, false, false);
         }
-        Serial.print("resetter=");
-        Serial.print("axis_scale=");
-        Serial.println(axis_scale);
     }
     analogWrite(dig46, 0);
     analogWrite(dig45, 0);
+    while(last_key_processed == KEY_NONE)
+    {
+        last_key_processed = oIR.GetKeyPressed();
+        if(last_key_processed == KEY_RETURN)
+        {
+            ClearScreen();
+            ShowMainMenu(SC_MAIN, ' ', ' ');
+            break;
+        }
+        delay(100);
+        last_key_processed = KEY_NONE;
+    }
 }
 
 void setup()
@@ -507,19 +524,18 @@ void loop()
     {
         ClearScreen();
         last_key_processed = KEY_NONE;
-        for (int i = 0; i <= 5; i++)
-        {
 
-            ClearScreen();
-            last_key_processed = KEY_NONE;
-            Option2();
-            
-        }
+        ClearScreen();
+        last_key_processed = KEY_NONE;
+        Option2();
+        last_key_processed = KEY_NONE;
     }
     else if (last_key_processed == KEY_3)
     {
         last_key_processed = KEY_NONE;
         pi_control(0, 0.2); //arg1 float: set point in rpm difference between mototrs
         //arg 2 float: integraion constant
+        last_key_processed = KEY_NONE;
+        
     }
 }
