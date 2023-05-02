@@ -366,8 +366,16 @@ void pi_control(int setpt, int interval)
     double maxRPM = 0;
     double init_time = millis();
     double current_time = 0;
-    while (digitalRead(22)==HIGH)
+
+    while (digitalRead(dig22) == HIGH)
+
     {
+        if (digitalRead(dig22) == LOW)
+        {
+            ClearScreen();
+            ShowMainMenu(SC_MAIN, ' ', ' ');
+            break;
+            
         start_time = millis();
         if (count == 1)
         {
